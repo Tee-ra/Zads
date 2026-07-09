@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    body { font-family: 'Prompt', sans-serif; background-color: #F5F5F7; color: #1D1D1F; }
+    .apple-nav { backdrop-filter: blur(20px); background: rgba(255, 255, 255, 0.8); border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .orange-accent { color: #FF5E00; }
+    .btn-apple-orange { background-color: #FF5E00; color: white; transition: all 0.2s ease; }
+    .btn-apple-orange:hover { background-color: #E05200; transform: translateY(-1px); }
+    .apple-card { background: white; border-radius: 20px; box-shadow: 0 4px 30px rgba(0,0,0,0.01); border: 1px solid rgba(0,0,0,0.03); }
+    .tab-btn.active { border-bottom: 2px solid #FF5E00; color: #FF5E00; font-weight: 600; }
+    .tr-row { transition: background 0.15s; border-bottom: 1px solid #F5F5F7; }
+    .tr-row:hover { background-color: #FAFAFB; }
+    
+    #appleAlert { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); opacity: 0; z-index: 9999; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px); padding: 32px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.08); text-align: center; width: 90%; max-width: 340px; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+    #appleAlert.show { display: block; transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    .blur-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.1); backdrop-filter: blur(4px); z-index: 9998; }
+    
+    /* บังคับการแสดงผลกล้องให้เต็มพื้นที่และไม่จอดำ */
+    #reader video { width: 100% !important; height: 100% !important; object-fit: cover !important; border-radius: 16px; }
+    #reader__scan_region { background: #000 !important; }
+  </style>
+</head>
+<body class="antialiased">
+
+  <div id="blurOverlay" class="blur-overlay" onclick="closeAlert()"></div>
+
+  <div id="appleAlert">
+    <div id="alertIcon" class="text-4xl mb-3"></div>
+    <div id="alertMessage" class="text-sm font-medium text-gray-800 break-words mb-2"></div>
+    <div id="alertSubMessage" class="text-xs text-gray-400 break-words mb-4"></div>
+    <button onclick="closeAlert()" class="btn-apple-orange px-5 py-2 rounded-full text-xs w-full">รับทราบ</button>
+  </div>
+
+  <nav class="sticky top-0 z-40 apple-nav">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
+      <div class="text-lg font-semibold tracking-tight">🍊 สีแสด <span class="orange-accent">Super Portal</span></div>
+      <div id="loginSection">
+        <button id="loginBtn" onclick="toggleModal('loginModal')" class="text-sm text-gray-400 hover:text-orange-500 transition">สตาฟคุมเครื่อง</button>
+        <div id="adminPanel" class="hidden flex items-center gap-4">
+          <span id="adminName" class="text-xs bg-orange-50 text-orange-600 px-3 py-1 rounded-full border border-orange-100 font-medium"></span>
+          <button onclick="logoutProcess()" class="text-xs text-red-400 hover:text-red-500">ปิดระบบสตาฟ</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
+    
+    <div class="flex border-b border-gray-200 gap-6 text-sm overflow-x-auto whitespace-nowrap">
+      <button id="tabFinanceBtn" onclick="switchTab('finance')" class="tab-btn active py-2 transition">💰 บัญชีงบประมาณ</button>
+      <button id="tabScannerBtn" onclick="switchTab('scanner')" class="tab-btn py-2 transition">📸 กล้องสแกนเช็กชื่อ</button>
+      <button id="tabLeaveBtn" onclick="switchTab('leave')" class="tab-btn py-2 transition">📝 แจ้งลา & ปฏิทิน</button>
+      <button id="tabDashboardBtn" onclick="switchTab('dashboard')" class="tab-btn py-2 transition">📊 สถิติทีม & ค้นหารายชื่อ</button>
+    </div>
+
+    <div id="sectionFinance" class="space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="apple-card p-6"><div class="text-xs font-semibold text-gray-400 mb-1">เงินคงเหลือสีแสด</div><div class="text-2xl font-bold orange-accent" id="val-balance">฿0.00</div></div>
+        <div class="apple-card p-6"><div class="text-xs font-semibold text-gray-400 mb-1">รวมรายรับ</div><div class="text-2xl font-bold text-gray-800" id="val-income">฿0.00</div></div>
+        <div class="apple-card p-6"><div class="text-xs font-semibold text-gray-400 mb-1">รวมรายจ่าย</div><div class="text-2xl font-bold text-gray-800" id="val-expense">฿0.00</div></div>
+      </div>
+      <div id="actionRow" class="hidden text-right"><button onclick="toggleModal('recordModal')" class="btn-apple-orange px-5 py-2 rounded-full text-xs font-medium">+ เพิ่มบัญชีรายรับ/จ่าย</button></div>
+      <div class="apple-card p-4 overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="bg-gray-50 text-gray-400 uppercase border-b border-gray-100">
+              <th class="p-3 pl-4">วันที่</th>
+              <th class="p-3">คำอธิบาย</th>
+              <th class="p-3 text-right">รายรับ</th>
+              <th class="p-3 text-right">รายจ่าย</th>
+              <th class="p-3 text-center">หลักฐาน</th>
+              <th class="p-3 text-center">สตาฟผู้บันทึก</th>
+            </tr>
+          </thead>
+          <tbody id="table-body" class="divide-y divide-gray-50"><tr><td colspan="6" class="p-8 text-center text-gray-400">กำลังโหลดบัญชี...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="sectionScanner" class="space-y-6 hidden">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="apple-card p-6 md:col-span-1 space-y-4">
+          <h3 class="text-base font-bold text-gray-800">เครื่องสแกนเช็กชื่อหน้าซุ้ม</h3>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1">เลือกประเภทบันทึกเวลา:</label>
+            <select id="attendance-type" class="w-full p-2.5 bg-gray-100 border-none rounded-xl text-xs font-medium focus:outline-none">
+              <option value="เข้างาน ☀️">เข้าซ้อมซุ้มสี (Check-In) ☀️</option>
+              <option value="เลิกงาน 🌙">เลิกซ้อมกลับบ้าน (Check-Out) 🌙</option>
+            </select>
+          </div>
+          
+          <div id="cameraSelectContainer" class="hidden">
+            <label class="block text-xs font-medium text-gray-400 mb-1">สลับอุปกรณ์กล้อง:</label>
+            <select id="cameraSelect" onchange="switchCameraDevice()" class="w-full p-2.5 bg-gray-100 border-none rounded-xl text-xs font-medium focus:outline-none"></select>
+          </div>
+
+          <div id="scannerContainer" class="hidden bg-black aspect-square rounded-2xl overflow-hidden border border-gray-100">
+            <div id="reader" class="w-full h-full"></div>
+          </div>
+          <div id="lockNotice" class="p-6 text-center border border-dashed border-gray-200 rounded-2xl bg-gray-50 text-xs text-red-400 font-medium">
+            🔒 เครื่องกลางถูกล็อกอยู่<br><span class="text-[10px] text-gray-400 font-normal">หัวหน้าสตาฟต้องล็อกอินที่มุมขวาบนเพื่อเปิดกล้อง</span>
+          </div>
+        </div>
+        
+        <div class="apple-card p-6 md:col-span-2 space-y-4">
+          <div class="flex justify-between items-center"><h3 class="text-sm font-bold text-gray-800">แผงจัดการประวัติ/บันทึกการขาด-ทดแทนสำหรับสตาฟ</h3></div>
+          <div id="staffManualRow" class="grid grid-cols-1 sm:grid-cols-4 gap-2 opacity-40 pointer-events-none">
+            <input type="text" id="manual-id" placeholder="รหัสนักเรียน" class="p-2 bg-gray-50 text-xs rounded-xl focus:outline-none border-none">
+            <input type="date" id="manual-date" class="p-2 bg-gray-50 text-xs rounded-xl focus:outline-none border-none">
+            <select id="manual-type" class="p-2 bg-gray-50 text-xs rounded-xl focus:outline-none border-none">
+              <option value="ขาดซ้อม ❌">ระบุว่า: ขาดซ้อม ❌</option>
+              <option value="เข้างาน ☀️">เพิ่มย้อนหลัง: มาซ้อม ☀️</option>
+            </select>
+            <button onclick="submitManualAttendance()" class="btn-apple-orange rounded-xl text-xs font-medium py-2">บันทึกข้อมูล</button>
+          </div>
+          <p id="staffManualNotice" class="text-[11px] text-red-400 font-light">⚠️ ฟังก์ชันบันทึกข้อมูลเพิ่มเติมเฉพาะสตาฟที่ล็อกอินระบบแล้วเท่านั้น</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="sectionLeave" class="grid grid-cols-1 md:grid-cols-3 gap-6 hidden">
+      <div class="apple-card p-6 md:col-span-1 space-y-4">
+        <h3 class="text-base font-bold text-gray-800">📝 ฟอร์มแจ้งลาเข้าบ้านสีแสด</h3>
+        <p class="text-[11px] text-gray-400">สมาชิก ม.4 และสตาฟ สามารถยื่นใบลาล่วงหน้าออนไลน์ตรงนี้ได้เลยโดยไม่ต้องล็อกอิน</p>
+        <div>
+          <input type="text" id="leave-id" placeholder="รหัสนักเรียน 5 หลัก" class="w-full p-3 bg-gray-50 rounded-xl text-xs border-none focus:outline-none focus:ring-1 focus:ring-orange-500">
+        </div>
+        <div>
+          <input type="date" id="leave-date" class="w-full p-3 bg-gray-50 rounded-xl text-xs border-none focus:outline-none">
+        </div>
+        <div>
+          <textarea id="leave-reason" placeholder="ระบุเหตุผลการลา (เช่น ติดธุระครอบครัว, ป่วยมีไข้)" rows="3" class="w-full p-3 bg-gray-50 rounded-xl text-xs border-none focus:outline-none"></textarea>
+        </div>
+        <button onclick="sendLeaveForm()" class="w-full btn-apple-orange py-2.5 rounded-xl text-xs font-medium">ส่งใบลาออนไลน์</button>
+      </div>
+      
+      <div class="apple-card p-6 md:col-span-2 space-y-4">
+        <h3 class="text-base font-bold text-gray-800">📅 ตารางปฏิทินและวันซ้อมสีแสด</h3>
+        <div class="overflow-y-auto max-h-[280px]">
+          <table class="w-full text-xs text-left">
+            <thead><tr class="bg-gray-50 text-gray-400 uppercase border-b border-gray-100"><th class="p-2.5 pl-4">วันที่กิจกรรม</th><th class="p-2.5">รายละเอียด/หัวข้อกิจกรรม</th></tr></thead>
+            <tbody id="calendar-body" class="divide-y divide-gray-50">
+              <tr><td colspan="2" class="p-4 text-center text-gray-400">กำลังดึงปฏิทินกิจกรรม...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="sectionDashboard" class="space-y-6 hidden">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="team-stats-row">
+        <div class="apple-card p-4 text-center"><div class="text-[10px] text-gray-400 font-medium">สมาชิกรวมในบ้านสี</div><div class="text-xl font-bold text-gray-800" id="stat-total-students">0 คน</div></div>
+        <div class="apple-card p-4 text-center"><div class="text-[10px] text-gray-400 font-medium">จำนวนวันซ้อมทั้งหมด</div><div class="text-xl font-bold text-gray-800" id="stat-total-events">0 วัน</div></div>
+        <div class="apple-card p-4 text-center"><div class="text-[10px] text-gray-400 font-medium">อัตราการเข้าซ้อมเฉลี่ย</div><div class="text-xl font-bold text-green-500" id="stat-present-rate">0%</div></div>
+        <div class="apple-card p-4 text-center"><div class="text-[10px] text-gray-400 font-medium">ยอดรวมสถิติการลา</div><div class="text-xl font-bold text-amber-500" id="stat-total-leave">0 ครั้ง</div></div>
+      </div>
+
+      <div class="apple-card p-6 space-y-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div>
+            <h3 class="text-base font-bold text-gray-800">ช่องตรวจสอบความถูกต้อง & สถิติรายบุคคล</h3>
+            <p class="text-[11px] text-gray-400">ค้นหาได้ง่ายดายด้วย ชื่อจริง, ชื่อเล่น, รหัส หรือพิมพ์เลขห้องเรียน ม.4 ได้เลย</p>
+          </div>
+          <input type="text" id="searchBox" onkeyup="filterStudents()" placeholder="🔍 พิมพ์ชื่อ, ชื่อเล่น, รหัส หรือ ห้องเรียน..." class="w-full sm:w-64 p-2.5 bg-gray-50 border-none rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-orange-500">
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-gray-50 text-gray-400 border-b border-gray-100">
+                <th class="p-3 pl-4">รหัส</th>
+                <th class="p-3">ชื่อจริง (ชื่อเล่น)</th>
+                <th class="p-3 text-center">ห้อง (ม.4)</th>
+                <th class="p-3 text-center">เลขที่</th>
+                <th class="p-3 text-center text-green-600">มา (วัน)</th>
+                <th class="p-3 text-center text-amber-500">ลา (วัน)</th>
+                <th class="p-3 text-center text-red-400">ขาด (วัน)</th>
+                <th class="p-3 text-center pr-4">เจาะลึก</th>
+              </tr>
+            </thead>
+            <tbody id="dashboard-table-body" class="divide-y divide-gray-50">
+              <tr><td colspan="8" class="p-8 text-center text-gray-400">กำลังประมวลผลสถิติ...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <div id="loginModal" class="fixed inset-0 bg-black/10 backdrop-blur-sm hidden flex items-center justify-center z-50">
+    <div class="bg-white/90 backdrop-blur-md rounded-[24px] p-6 w-full max-w-xs border border-white/20 shadow-xl">
+      <h3 class="text-base font-bold text-gray-900 mb-4">เปิดเครื่องกลางสแกนชื่อ</h3>
+      <input type="text" id="username" placeholder="ชื่อผู้ใช้งานสตาฟ" class="w-full mb-2 p-3 bg-gray-100 rounded-xl text-xs focus:outline-none">
+      <input type="password" id="password" placeholder="รหัสผ่าน" class="w-full mb-4 p-3 bg-gray-100 rounded-xl text-xs focus:outline-none">
+      <div class="flex gap-2">
+        <button onclick="toggleModal('loginModal')" class="w-1/2 py-2 bg-gray-100 text-gray-400 text-xs rounded-xl">ยกเลิก</button>
+        <button id="submitLoginBtn" onclick="loginProcess()" class="w-1/2 py-2 btn-apple-orange text-xs rounded-xl">เข้าสู่ระบบ</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="recordModal" class="fixed inset-0 bg-black/10 backdrop-blur-sm hidden flex items-center justify-center z-50">
+    <div class="bg-white/90 backdrop-blur-md rounded-[24px] p-6 w-full max-w-sm border border-white/20 shadow-xl">
+      <h3 class="text-base font-bold text-gray-900 mb-4">เพิ่มรายการบัญชีสีแสด</h3>
+      <input type="text" id="rec-desc" placeholder="รายการคำอธิบาย" class="w-full mb-2 p-3 bg-gray-100 rounded-xl text-xs focus:outline-none">
+      <select id="rec-type" class="w-full mb-2 p-3 bg-gray-100 rounded-xl text-xs focus:outline-none"><option value="income">รายรับ (เงินเข้าสี)</option><option value="expense">รายจ่าย (ซื้อของ)</option></select>
+      <input type="number" id="rec-amount" placeholder="จำนวนเงิน (บาท)" class="w-full mb-2 p-3 bg-gray-100 rounded-xl text-xs focus:outline-none">
+      <input type="file" id="rec-file" accept="image/*" class="w-full mb-4 p-2 bg-gray-100 rounded-xl text-[10px]">
+      <div class="flex gap-2">
+        <button onclick="toggleModal('recordModal')" class="w-1/2 py-2 bg-gray-100 text-gray-400 text-xs rounded-xl">ปิด</button>
+        <button id="submitRecordBtn" onclick="submitRecord()" class="w-1/2 py-2 btn-apple-orange text-xs rounded-xl">บันทึกข้อมูล</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ⚠️ แก้ตรงนี้เป็นลิงก์ Web App /exec ของคุณเอง
+    // (Apps Script Editor > Deploy > Manage deployments)
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbypN_IW41VQNCz_1dChWFaFjBbguiRDrTOZFgvuw582jXBOG0LDywFjTEK3a7-OBCWC/exec";
+
+    // --- Shim: ทำให้ google.script.run.withSuccessHandler(cb).ฟังก์ชัน(args) ---
+    // --- ทำงานผ่าน fetch() ไปหา Apps Script (doPost) แทนของเดิม ---
+    // เขียนแบบนี้เพื่อให้โค้ดส่วนที่เหลือทั้งหมดในไฟล์นี้ไม่ต้องแก้อะไรเลย
+    function gasCall(fnName, args, successFn, failFn) {
+      fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        // ใช้ text/plain เพื่อเลี่ยง CORS preflight (Apps Script ไม่รองรับ OPTIONS request)
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ fn: fnName, args: args })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.__error) {
+            if (failFn) failFn(data.__error); else console.error(data.__error);
+          } else if (successFn) {
+            successFn(data.result);
+          }
+        })
+        .catch(err => {
+          console.error("gasCall network error:", err);
+          if (failFn) failFn(err.toString());
+          else triggerAlert("เชื่อมต่อไม่สำเร็จ ❌", "ตรวจสอบอินเทอร์เน็ต หรือ APPS_SCRIPT_URL ให้ถูกต้อง", "❌");
+        });
+    }
+
+    const google = {
+      script: {
+        run: {
+          withSuccessHandler(successFn) {
+            let failFn = null;
+            const runner = new Proxy({}, {
+              get(_, fnName) {
+                return (...args) => gasCall(fnName, args, successFn, failFn);
+              }
+            });
+            runner.withFailureHandler = (fn) => { failFn = fn; return runner; };
+            return runner;
+          }
+        }
+      }
+    };
+
+    let loggedInUser = null;
+    let html5QrcodeScanner = null;
+    let isProcessingScan = false;
+    let cachedStudentsData = [];
+    let currentCameraId = null;
+
+    window.onload = () => {
+      loadFinance();
+      loadCalendar();
+      refreshDashboard();
+    };
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('sectionFinance').classList.add('hidden');
+      document.getElementById('sectionScanner').classList.add('hidden');
+      document.getElementById('sectionLeave').classList.add('hidden');
+      document.getElementById('sectionDashboard').classList.add('hidden');
+      
+      if(tab === 'finance') {
+        document.getElementById('tabFinanceBtn').classList.add('active');
+        document.getElementById('sectionFinance').classList.remove('hidden');
+      } else if(tab === 'scanner') {
+        document.getElementById('tabScannerBtn').classList.add('active');
+        document.getElementById('sectionScanner').classList.remove('hidden');
+      } else if(tab === 'leave') {
+        document.getElementById('tabLeaveBtn').classList.add('active');
+        document.getElementById('sectionLeave').classList.remove('hidden');
+      } else {
+        document.getElementById('tabDashboardBtn').classList.add('active');
+        document.getElementById('sectionDashboard').classList.remove('hidden');
+      }
+    }
+
+    function triggerAlert(title, message, icon = "⚡️") {
+      document.getElementById('alertIcon').innerText = icon;
+      document.getElementById('alertMessage').innerText = title;
+      document.getElementById('alertSubMessage').innerText = message;
+      document.getElementById('blurOverlay').style.display = 'block';
+      const alertBox = document.getElementById('appleAlert');
+      alertBox.style.display = 'block'; setTimeout(() => alertBox.classList.add('show'), 10);
+    }
+    
+    function closeAlert() { document.getElementById('appleAlert').classList.remove('show'); setTimeout(() => { document.getElementById('appleAlert').style.display = 'none'; document.getElementById('blurOverlay').style.display = 'none'; }, 250); }
+    function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
+    function formatMoney(num) { return '฿' + num.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,'); }
+
+    // --- 1. โหลดข้อมูลบัญชี ---
+    function loadFinance() {
+      google.script.run.withSuccessHandler(data => {
+        if(data.error) return;
+        document.getElementById('val-balance').innerText = formatMoney(data.balance);
+        document.getElementById('val-income').innerText = formatMoney(data.totalIncome);
+        document.getElementById('val-expense').innerText = formatMoney(data.totalExpense);
+        let h = "";
+        for(let i = data.list.length-1; i >=0; i--) {
+          let item = data.list[i];
+          let inc = item.income > 0 ? `<span class="text-green-500 font-semibold">+${formatMoney(item.income)}</span>` : "-";
+          let exp = item.expense > 0 ? `<span class="text-red-400">-${formatMoney(item.expense)}</span>` : "-";
+          
+          let receiptBtn = "-";
+          if (item.receiptUrl) {
+            receiptBtn = `<a href="${item.receiptUrl}" target="_blank" class="bg-orange-50 text-orange-600 border border-orange-200 px-2.5 py-1 rounded-full hover:bg-orange-100 transition inline-block">📄 เปิดดูรูป</a>`;
+          } else {
+            receiptBtn = `<span class="text-gray-300 italic">ไม่มีหลักฐาน</span>`;
+          }
+
+          h += `<tr class="tr-row">
+                  <td class="p-3 pl-4 text-gray-400">${item.date}</td>
+                  <td class="p-3 font-medium">${item.desc}</td>
+                  <td class="p-3 text-right">${inc}</td>
+                  <td class="p-3 text-right">${exp}</td>
+                  <td class="p-3 text-center">${receiptBtn}</td>
+                  <td class="p-3 text-center text-gray-400">${item.by || 'ทั่วไป'}</td>
+                </tr>`;
+        }
+        document.getElementById('table-body').innerHTML = h || "<tr><td colspan='6' class='p-4 text-center'>ไม่มีรายการ</td></tr>";
+      }).getFinanceData();
+    }
+
+    // --- 2. โหลดปฏิทินกิจกรรม ---
+    function loadCalendar() {
+      google.script.run.withSuccessHandler(list => {
+        let h = "";
+        list.forEach(item => {
+          h += `<tr class="tr-row"><td class="p-2.5 pl-4 font-semibold text-orange-600">${item.date}</td><td class="p-2.5 text-gray-700">${item.event}</td></tr>`;
+        });
+        document.getElementById('calendar-body').innerHTML = h || "<tr><td colspan='2' class='p-4 text-center text-gray-400'>ยังไม่มีกำหนดการซ้อม</td></tr>";
+      }).getCalendarData();
+    }
+
+    // --- 3. ระบบกล้องถอดรหัส (เน้นแก้ปัญหา Sandbox iframe บล็อกสิทธิ์) ---
+    function startCamera() {
+      document.getElementById('lockNotice').classList.add('hidden');
+      document.getElementById('scannerContainer').classList.remove('hidden');
+
+      // เช็กก่อนว่าเบราว์เซอร์/สภาพแวดล้อมนี้รองรับกล้องหรือไม่
+      // (มักเกิดปัญหานี้เวลาเปิดลิงก์ผ่าน In-App Browser ของ LINE/Facebook/Instagram
+      //  หรือเปิดผ่าน HTTP ธรรมดาที่ไม่ใช่ HTTPS)
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        triggerAlert(
+          "อุปกรณ์นี้ไม่รองรับกล้อง 🔒",
+          "เบราว์เซอร์หรือแอปที่เปิดอยู่ไม่รองรับการเข้าถึงกล้อง (มักเจอเวลาเปิดลิงก์ผ่านแอป LINE/Facebook/Instagram)\n\n💡 กรุณากดจุดสามจุด/เมนู แล้วเลือก 'เปิดด้วยเบราว์เซอร์' (Chrome/Safari) แทนครับ",
+          "❌"
+        );
+        return;
+      }
+
+      if (!html5QrcodeScanner) {
+        html5QrcodeScanner = new Html5Qrcode("reader");
+      }
+
+      // ขอสิทธิ์กล้องแบบตรงๆ ก่อน 1 ครั้ง เพื่อบังคับให้เบราว์เซอร์เด้ง popup ขอสิทธิ์
+      // ให้ชัดเจน (บางเบราว์เซอร์จะไม่เด้ง permission prompt ถ้าเรียก getCameras() ตรงๆ
+      // โดยยังไม่เคยมีการขอ getUserMedia มาก่อนเลย)
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          // ปิด stream ทดสอบทันที ไม่ต้องใช้ต่อ (แค่ขอสิทธิ์เฉยๆ)
+          stream.getTracks().forEach(track => track.stop());
+          detectCamerasAndStart();
+        })
+        .catch(err => {
+          console.error("getUserMedia permission error:", err);
+          onCameraLaunchError(err);
+        });
+    }
+
+    function detectCamerasAndStart() {
+      // ตรวจสอบและค้นหากล้องของอุปกรณ์ผ่านไลบรารีโดยตรง
+      Html5Qrcode.getCameras().then(devices => {
+        if (devices && devices.length > 0) {
+          const cameraSelect = document.getElementById('cameraSelect');
+          cameraSelect.innerHTML = "";
+          
+          devices.forEach((device, index) => {
+            const option = document.createElement('option');
+            option.value = device.id;
+            option.text = device.label || `กล้องตัวที่ ${index + 1}`;
+            cameraSelect.appendChild(option);
+          });
+          document.getElementById('cameraSelectContainer').classList.remove('hidden');
+          
+          // ค้นหากล้องหลัง (Back/Environment) เพื่อความสะดวกในการแสกนหน้าซุ้ม
+          let targetCameraId = devices[0].id;
+          for(let d of devices) {
+            const labelLower = d.label.toLowerCase();
+            if(labelLower.includes('back') || labelLower.includes('environment') || labelLower.includes('หลัง') || labelLower.includes('rear')) {
+              targetCameraId = d.id;
+              break;
+            }
+          }
+          cameraSelect.value = targetCameraId;
+          currentCameraId = targetCameraId;
+
+          executeScannerStream(targetCameraId);
+        } else {
+          // หากยังไม่เจอตัวอุปกรณ์ ให้ลองรันด้วยฟังก์ชันอัตโนมัติของตัวสแกนทันที
+          executeScannerStream({ facingMode: "environment" });
+        }
+      }).catch(err => {
+        console.warn("Camera fallback applied:", err);
+        // Fallback: ถ้า getCameras ถูกสกัดกั้น ให้สั่งเริ่มทำงานผ่าน FacingMode ทันที
+        executeScannerStream({ facingMode: "environment" });
+      });
+    }
+
+    function executeScannerStream(cameraConfig) {
+      const config = { 
+        fps: 15, 
+        qrbox: function(viewfinderWidth, viewfinderHeight) {
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          const boxWidth = Math.floor(minEdge * 0.65);
+          return { width: boxWidth, height: boxWidth };
+        },
+        aspectRatio: 1.0
+      };
+
+      if (html5QrcodeScanner.isScanning) {
+        html5QrcodeScanner.stop().then(() => {
+          html5QrcodeScanner.start(cameraConfig, config, onScanSuccess, onScanError).catch(onCameraLaunchError);
+        }).catch(() => {
+          html5QrcodeScanner.start(cameraConfig, config, onScanSuccess, onScanError).catch(onCameraLaunchError);
+        });
+      } else {
+        html5QrcodeScanner.start(cameraConfig, config, onScanSuccess, onScanError).catch(onCameraLaunchError);
+      }
+    }
+
+    function switchCameraDevice() {
+      const selectedId = document.getElementById('cameraSelect').value;
+      if(selectedId && selectedId !== currentCameraId) {
+        currentCameraId = selectedId;
+        executeScannerStream(selectedId);
+      }
+    }
+
+    function onScanSuccess(qrText) {
+      if(!isProcessingScan) {
+        isProcessingScan = true;
+        let type = document.getElementById('attendance-type').value;
+        google.script.run.withSuccessHandler(res => {
+          if(res.success) {
+            triggerAlert("สแกนสำเร็จ ✅", `สตาฟ/สมาชิก: ${res.name}\nบันทึกเวลา ${type} เรียบร้อย`, "🎉");
+            refreshDashboard();
+          } else {
+            triggerAlert("สแกนล้มเหลว ❌", res, "⚠️");
+          }
+          setTimeout(() => { isProcessingScan = false; }, 3000); 
+        }).recordAttendance(qrText, type);
+      }
+    }
+
+    function onScanError(err) { /* ทำงานเบื้องหลังเงียบๆ เพื่อลดการประมวลผลซ้ำซ้อน */ }
+
+    function onCameraLaunchError(e) {
+      console.error(e);
+      const name = (e && e.name) || "";
+      let title = "เปิดกล้องไม่สำเร็จ 🔒";
+      let msg = "เบราว์เซอร์บล็อกการทำงานจากกรอบระบบภายใน\n\n💡 แนะนำให้เปิดใช้งานลิงก์นี้บน Google Chrome หรือ Safari ภายนอกโดยตรงครับ";
+
+      if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+        title = "ไม่ได้รับอนุญาตให้ใช้กล้อง 🚫";
+        msg = "คุณกด 'ปฏิเสธ' สิทธิ์กล้อง หรือเบราว์เซอร์เคยบล็อกไว้\n\n💡 กรุณากดไอคอนกุญแจ/ตัวล็อกที่แถบ URL แล้วเปิดสิทธิ์กล้องใหม่ จากนั้นรีเฟรชหน้าเว็บครับ";
+      } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+        title = "ไม่พบกล้องในอุปกรณ์นี้ 📷";
+        msg = "อุปกรณ์นี้ไม่มีกล้อง หรือกล้องถูกปิดใช้งานในระบบ\n\n💡 ลองเปิดด้วยมือถือหรือคอมพิวเตอร์ที่มีกล้องแทนครับ";
+      } else if (name === "NotReadableError" || name === "TrackStartError") {
+        title = "กล้องถูกใช้งานอยู่ ⚠️";
+        msg = "กล้องอาจถูกเปิดใช้งานโดยแอปอื่นอยู่ในขณะนี้\n\n💡 ลองปิดแอปอื่นที่อาจใช้กล้องอยู่ แล้วลองใหม่อีกครั้งครับ";
+      } else if (location.protocol !== "https:") {
+        title = "ต้องใช้ HTTPS เท่านั้น 🔒";
+        msg = "เบราว์เซอร์อนุญาตให้ใช้กล้องเฉพาะบนลิงก์ที่ปลอดภัย (https://) เท่านั้น";
+      }
+
+      triggerAlert(title, msg, "❌");
+    }
+
+    function stopCamera() {
+      document.getElementById('cameraSelectContainer').classList.add('hidden');
+      if(html5QrcodeScanner && html5QrcodeScanner.isScanning) {
+        html5QrcodeScanner.stop().then(() => {
+          document.getElementById('lockNotice').classList.remove('hidden');
+          document.getElementById('scannerContainer').classList.add('hidden');
+        }).catch(err => console.log("Error stopping scanner: ", err));
+      } else {
+        document.getElementById('lockNotice').classList.remove('hidden');
+        document.getElementById('scannerContainer').classList.add('hidden');
+      }
+    }
+
+    // --- 4. บันทึกข้อมูลโดยสตาฟ ---
+    function submitManualAttendance() {
+      let id = document.getElementById('manual-id').value;
+      let date = document.getElementById('manual-date').value;
+      let type = document.getElementById('manual-type').value;
+      if(!id || !date) return triggerAlert("ข้อมูลไม่ครบ", "กรุณาระบุรหัสและเลือกวันที่ให้ครบถ้วน", "⚠️");
+      
+      google.script.run.withSuccessHandler(res => {
+        if(res === true) {
+          triggerAlert("บันทึกประวัติเพิ่มเติมสำเร็จ", "ข้อมูลถูกบันทึกลงฐานข้อมูลแล้ว", "✅");
+          refreshDashboard();
+          document.getElementById('manual-id').value = "";
+        } else { triggerAlert("เกิดข้อผิดพลาด", res, "❌"); }
+      }).staffAddAttendance(id, date, type);
+    }
+
+    // --- 5. ส่งฟอร์มแจ้งลาออนไลน์ ---
+    function sendLeaveForm() {
+      let id = document.getElementById('leave-id').value;
+      let date = document.getElementById('leave-date').value;
+      let reason = document.getElementById('leave-reason').value;
+      if(!id || !date || !reason) return triggerAlert("ข้อมูลไม่ครบถ้วน", "กรุณากรอกข้อมูลใบลาให้ครบทุกช่อง", "⚠️");
+      
+      google.script.run.withSuccessHandler(res => {
+        if(res.success) {
+          triggerAlert("ยื่นใบลาสำเร็จ ✅", `ระบบบันทึกการลาของ ${res.name} เรียบร้อยแล้ว`, "📝");
+          document.getElementById('leave-id').value = ""; document.getElementById('leave-reason').value = "";
+          refreshDashboard();
+        } else { triggerAlert("ล้มเหลว", res, "❌"); }
+      }).submitLeave(id, date, reason);
+    }
+
+    // --- 6. แดชบอร์ดสถิติ ---
+    function refreshDashboard() {
+      google.script.run.withSuccessHandler(res => {
+        if(res.error) return;
+        document.getElementById('stat-total-students').innerText = res.teamStats.totalStudents + " คน";
+        document.getElementById('stat-total-events').innerText = res.teamStats.totalEvents + " วัน";
+        document.getElementById('stat-present-rate').innerText = res.teamStats.presentRate;
+        document.getElementById('stat-total-leave').innerText = res.teamStats.totalLeave + " ครั้ง";
+        
+        cachedStudentsData = res.studentsList;
+        renderDashboardTable(cachedStudentsData);
+      }).getDashboardAndData();
+    }
+
+    function renderDashboardTable(list) {
+      let h = "";
+      list.forEach(s => {
+        h += `
+        <tr class="tr-row">
+          <td class="p-3 pl-4 font-mono text-gray-500">${s.id}</td>
+          <td class="p-3 font-semibold text-gray-800">${s.name} (${s.nickname})</td>
+          <td class="p-3 text-center text-gray-600">ม.4/${s.room}</td>
+          <td class="p-3 text-center text-gray-600">${s.no}</td>
+          <td class="p-3 text-center text-green-500 font-bold">${s.presentCount}</td>
+          <td class="p-3 text-center text-amber-500 font-bold">${s.leaveCount}</td>
+          <td class="p-3 text-center text-red-400 font-bold">${s.absentCount}</td>
+          <td class="p-3 text-center pr-4">
+            <button onclick="viewIndividualHistory('${s.id}')" class="text-[11px] orange-accent hover:underline font-medium">ดูประวัติ</button>
+          </td>
+        </tr>`;
+      });
+      document.getElementById('dashboard-table-body').innerHTML = h || "<tr><td colspan='8' class='p-4 text-center'>ไม่พบข้อมูลสถิติ</td></tr>";
+    }
+
+    function filterStudents() {
+      let q = document.getElementById('searchBox').value.toLowerCase().trim();
+      if(!q) return renderDashboardTable(cachedStudentsData);
+      
+      let filtered = cachedStudentsData.filter(s => {
+        return s.name.toLowerCase().includes(q) || 
+               s.nickname.toLowerCase().includes(q) || 
+               s.id.toString().includes(q) || 
+               s.room.toString().includes(q) || 
+               ("ม.4/" + s.room).includes(q);
+      });
+      renderDashboardTable(filtered);
+    }
+
+    function viewIndividualHistory(studentId) {
+      let student = cachedStudentsData.find(s => s.id === studentId);
+      if(!student) return;
+      let historyText = student.history.length === 0 ? "ยังไม่มีประวัติการเช็กชื่อเข้าบ้านสี" : "";
+      student.history.forEach(h => {
+        historyText += `📅 วันที่: ${h.date} | เวลาสแกน: ${h.time} | Status: ${h.status}\n`;
+      });
+      alert(`[ประวัติการเข้าบ้านสีแสดของ: ${student.name} ม.4/${student.room}]\n\n` + historyText);
+    }
+
+    // --- 7. การล็อกอินสตาฟ ---
+    function loginProcess() {
+      let u = document.getElementById('username').value;
+      let p = document.getElementById('password').value;
+      google.script.run.withSuccessHandler(res => {
+        if(res.success) {
+          loggedInUser = u; toggleModal('loginModal');
+          document.getElementById('loginBtn').classList.add('hidden');
+          document.getElementById('adminPanel').classList.remove('hidden');
+          document.getElementById('adminName').innerText = "ผู้คุมซุ้ม: " + u;
+          document.getElementById('actionRow').classList.remove('hidden');
+          
+          document.getElementById('staffManualRow').classList.remove('opacity-40', 'pointer-events-none');
+          document.getElementById('staffManualNotice').classList.add('hidden');
+          
+          startCamera(); 
+          triggerAlert("ยินดีต้อนรับสตาฟสีแสด", "เปิดระบบสแกนเครื่องกลางและแผงควบคุมสตาฟแล้วครับ", "🍊");
+        } else { triggerAlert("ข้อผิดพลาด", res.message, "❌"); }
+      }).checkLogin(u, p);
+    }
+
+    function logoutProcess() {
+      loggedInUser = null;
+      document.getElementById('loginBtn').classList.remove('hidden');
+      document.getElementById('adminPanel').classList.add('hidden');
+      document.getElementById('actionRow').classList.add('hidden');
+      document.getElementById('staffManualRow').classList.add('opacity-40', 'pointer-events-none');
+      document.getElementById('staffManualNotice').classList.remove('hidden');
+      
+      stopCamera(); 
+      triggerAlert("ปิดระบบเสร็จสิ้น", "🔒 ล็อกเครื่องกลางและปิดกล้องสแกนเรียบร้อยแล้วครับ", "🔒");
+    }
+
+    function submitRecord() {
+      const desc = document.getElementById('rec-desc').value;
+      const type = document.getElementById('rec-type').value;
+      const amount = parseFloat(document.getElementById('rec-amount').value);
+      const fileInput = document.getElementById('rec-file');
+      if(!desc || isNaN(amount)) return;
+      const file = fileInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) { 
+          google.script.run.withSuccessHandler(() => { 
+            toggleModal('recordModal'); 
+            loadFinance(); 
+          }).addRecordWithFile(loggedInUser, desc, type, amount, { bytes: e.target.result.split(',')[1], mimeType: file.type, name: file.name }); 
+        };
+        reader.readAsDataURL(file);
+      } else {
+        google.script.run.withSuccessHandler(() => { 
+          toggleModal('recordModal'); 
+          loadFinance(); 
+        }).addRecordWithFile(loggedInUser, desc, type, amount, null);
+      }
+    }
+  </script>
+</body>
+</html>
