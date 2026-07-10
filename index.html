@@ -96,7 +96,10 @@
           
           <div id="cameraSelectContainer" class="hidden">
             <label class="block text-xs font-medium text-gray-400 mb-1">สลับอุปกรณ์กล้อง:</label>
-            <select id="cameraSelect" onchange="switchCameraDevice()" class="w-full p-2.5 bg-gray-100 border-none rounded-xl text-xs font-medium focus:outline-none"></select>
+            <div class="flex gap-2">
+              <select id="cameraSelect" onchange="switchCameraDevice()" class="flex-1 p-2.5 bg-gray-100 border-none rounded-xl text-xs font-medium focus:outline-none"></select>
+              <button onclick="flipCamera()" title="สลับกล้องหน้า/หลัง" class="shrink-0 px-3 bg-orange-50 text-orange-600 border border-orange-100 rounded-xl text-sm hover:bg-orange-100 transition">🔄</button>
+            </div>
           </div>
 
           <div id="scannerContainer" class="hidden bg-black aspect-square rounded-2xl overflow-hidden border border-gray-100">
@@ -287,6 +290,7 @@
     let isProcessingScan = false;
     let cachedStudentsData = [];
     let currentCameraId = null;
+    let availableCameras = [];
 
     window.onload = () => {
       loadFinance();
@@ -462,6 +466,7 @@
       // ตรวจสอบและค้นหากล้องของอุปกรณ์ผ่านไลบรารีโดยตรง
       Html5Qrcode.getCameras().then(devices => {
         if (devices && devices.length > 0) {
+          availableCameras = devices;
           const cameraSelect = document.getElementById('cameraSelect');
           cameraSelect.innerHTML = "";
           
@@ -505,7 +510,12 @@
           const boxWidth = Math.floor(minEdge * 0.65);
           return { width: boxWidth, height: boxWidth };
         },
-        aspectRatio: 1.0
+        aspectRatio: 1.0,
+        // บังคับให้กล้องโฟกัสอัตโนมัติแบบต่อเนื่อง ช่วยลดปัญหาภาพเบลอตอนสแกนใกล้ๆ
+        // (เบราว์เซอร์ที่ไม่รองรับจะข้าม constraint นี้ไปเฉยๆ ไม่ error)
+        videoConstraints: {
+          advanced: [{ focusMode: "continuous" }]
+        }
       };
 
       if (html5QrcodeScanner.isScanning) {
@@ -525,6 +535,20 @@
         currentCameraId = selectedId;
         executeScannerStream(selectedId);
       }
+    }
+
+    // สลับกล้องหน้า/หลัง (หรือวนไปทีละตัวถ้ามีมากกว่า 2 กล้อง)
+    function flipCamera() {
+      if (!availableCameras || availableCameras.length < 2) {
+        triggerAlert("มีกล้องเดียว 📷", "อุปกรณ์นี้ตรวจพบกล้องแค่ตัวเดียว ไม่สามารถสลับได้ครับ", "📷");
+        return;
+      }
+      let idx = availableCameras.findIndex(d => d.id === currentCameraId);
+      let nextIdx = (idx + 1) % availableCameras.length;
+      const nextCamera = availableCameras[nextIdx];
+      currentCameraId = nextCamera.id;
+      document.getElementById('cameraSelect').value = nextCamera.id;
+      executeScannerStream(nextCamera.id);
     }
 
     function onScanSuccess(qrText) {
