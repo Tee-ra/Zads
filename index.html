@@ -63,7 +63,7 @@
         <div class="apple-card p-6"><div class="text-xs font-semibold text-gray-400 mb-1">รวมรายรับ</div><div class="text-2xl font-bold text-gray-800" id="val-income">฿0.00</div></div>
         <div class="apple-card p-6"><div class="text-xs font-semibold text-gray-400 mb-1">รวมรายจ่าย</div><div class="text-2xl font-bold text-gray-800" id="val-expense">฿0.00</div></div>
       </div>
-      <div id="actionRow" class="hidden text-right"><button onclick="toggleModal('recordModal')" class="btn-apple-orange px-5 py-2 rounded-full text-xs font-medium">+ เพิ่มบัญชีรายรับ/จ่าย</button></div>
+      <div id="actionRow" class="admin-only hidden text-right"><button onclick="toggleModal('recordModal')" class="btn-apple-orange px-5 py-2 rounded-full text-xs font-medium">+ เพิ่มบัญชีรายรับ/จ่าย</button></div>
       <div class="apple-card p-4 overflow-x-auto">
         <table class="w-full text-left text-xs border-collapse">
           <thead>
@@ -74,9 +74,10 @@
               <th class="p-3 text-right">รายจ่าย</th>
               <th class="p-3 text-center">หลักฐาน</th>
               <th class="p-3 text-center">สตาฟผู้บันทึก</th>
+              <th class="p-3 text-center">จัดการ</th>
             </tr>
           </thead>
-          <tbody id="table-body" class="divide-y divide-gray-50"><tr><td colspan="6" class="p-8 text-center text-gray-400">กำลังโหลดบัญชี...</td></tr></tbody>
+          <tbody id="table-body" class="divide-y divide-gray-50"><tr><td colspan="7" class="p-8 text-center text-gray-400">กำลังโหลดบัญชี...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -139,12 +140,15 @@
       </div>
       
       <div class="apple-card p-6 md:col-span-2 space-y-4">
-        <h3 class="text-base font-bold text-gray-800">📅 ตารางปฏิทินและวันซ้อมสีแสด</h3>
+        <div class="flex justify-between items-center">
+          <h3 class="text-base font-bold text-gray-800">📅 ตารางปฏิทินและวันซ้อมสีแสด</h3>
+          <button id="calendarAddBtn" onclick="toggleModal('calendarModal')" class="admin-only hidden btn-apple-orange px-4 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap">+ เพิ่มกิจกรรม</button>
+        </div>
         <div class="overflow-y-auto max-h-[280px]">
           <table class="w-full text-xs text-left">
-            <thead><tr class="bg-gray-50 text-gray-400 uppercase border-b border-gray-100"><th class="p-2.5 pl-4">วันที่กิจกรรม</th><th class="p-2.5">รายละเอียด/หัวข้อกิจกรรม</th></tr></thead>
+            <thead><tr class="bg-gray-50 text-gray-400 uppercase border-b border-gray-100"><th class="p-2.5 pl-4">วันที่กิจกรรม</th><th class="p-2.5">รายละเอียด/หัวข้อกิจกรรม</th><th class="p-2.5 text-center">จัดการ</th></tr></thead>
             <tbody id="calendar-body" class="divide-y divide-gray-50">
-              <tr><td colspan="2" class="p-4 text-center text-gray-400">กำลังดึงปฏิทินกิจกรรม...</td></tr>
+              <tr><td colspan="3" class="p-4 text-center text-gray-400">กำลังดึงปฏิทินกิจกรรม...</td></tr>
             </tbody>
           </table>
         </div>
@@ -218,10 +222,22 @@
     </div>
   </div>
 
+  <div id="calendarModal" class="fixed inset-0 bg-black/10 backdrop-blur-sm hidden flex items-center justify-center z-50">
+    <div class="bg-white/90 backdrop-blur-md rounded-[24px] p-6 w-full max-w-xs border border-white/20 shadow-xl">
+      <h3 class="text-base font-bold text-gray-900 mb-4">เพิ่มกิจกรรมในปฏิทิน</h3>
+      <input type="date" id="cal-date" class="w-full mb-2 p-3 bg-gray-100 rounded-xl text-xs focus:outline-none">
+      <input type="text" id="cal-event" placeholder="ชื่อกิจกรรม/รายละเอียด" class="w-full mb-4 p-3 bg-gray-100 rounded-xl text-xs focus:outline-none">
+      <div class="flex gap-2">
+        <button onclick="toggleModal('calendarModal')" class="w-1/2 py-2 bg-gray-100 text-gray-400 text-xs rounded-xl">ยกเลิก</button>
+        <button onclick="submitCalendarEvent()" class="w-1/2 py-2 btn-apple-orange text-xs rounded-xl">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // ⚠️ แก้ตรงนี้เป็นลิงก์ Web App /exec ของคุณเอง
     // (Apps Script Editor > Deploy > Manage deployments)
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbypN_IW41VQNCz_1dChWFaFjBbguiRDrTOZFgvuw582jXBOG0LDywFjTEK3a7-OBCWC/exec";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec";
 
     // --- Shim: ทำให้ google.script.run.withSuccessHandler(cb).ฟังก์ชัน(args) ---
     // --- ทำงานผ่าน fetch() ไปหา Apps Script (doPost) แทนของเดิม ---
@@ -266,6 +282,7 @@
     };
 
     let loggedInUser = null;
+    let loggedInRole = null;
     let html5QrcodeScanner = null;
     let isProcessingScan = false;
     let cachedStudentsData = [];
@@ -332,6 +349,10 @@
             receiptBtn = `<span class="text-gray-300 italic">ไม่มีหลักฐาน</span>`;
           }
 
+          let manageBtn = loggedInRole === 'admin'
+            ? `<button onclick="deleteFinanceRecord(${item.rowId})" class="text-red-400 hover:text-red-500 text-[11px] font-medium">🗑 ลบ</button>`
+            : `<span class="text-gray-300">-</span>`;
+
           h += `<tr class="tr-row">
                   <td class="p-3 pl-4 text-gray-400">${item.date}</td>
                   <td class="p-3 font-medium">${item.desc}</td>
@@ -339,10 +360,23 @@
                   <td class="p-3 text-right">${exp}</td>
                   <td class="p-3 text-center">${receiptBtn}</td>
                   <td class="p-3 text-center text-gray-400">${item.by || 'ทั่วไป'}</td>
+                  <td class="p-3 text-center">${manageBtn}</td>
                 </tr>`;
         }
-        document.getElementById('table-body').innerHTML = h || "<tr><td colspan='6' class='p-4 text-center'>ไม่มีรายการ</td></tr>";
+        document.getElementById('table-body').innerHTML = h || "<tr><td colspan='7' class='p-4 text-center'>ไม่มีรายการ</td></tr>";
       }).getFinanceData();
+    }
+
+    function deleteFinanceRecord(rowId) {
+      if (!confirm("ยืนยันลบรายการนี้? ข้อมูลจะหายถาวรและกู้คืนไม่ได้")) return;
+      google.script.run.withSuccessHandler(res => {
+        if (res.success) {
+          triggerAlert("ลบสำเร็จ ✅", "ลบรายการบัญชีเรียบร้อยแล้ว", "🗑");
+          loadFinance();
+        } else {
+          triggerAlert("ลบไม่สำเร็จ", res.message || "เกิดข้อผิดพลาด", "❌");
+        }
+      }).deleteRecord(rowId);
     }
 
     // --- 2. โหลดปฏิทินกิจกรรม ---
@@ -350,10 +384,42 @@
       google.script.run.withSuccessHandler(list => {
         let h = "";
         list.forEach(item => {
-          h += `<tr class="tr-row"><td class="p-2.5 pl-4 font-semibold text-orange-600">${item.date}</td><td class="p-2.5 text-gray-700">${item.event}</td></tr>`;
+          let manageBtn = loggedInRole === 'admin'
+            ? `<button onclick="deleteCalendarEvent(${item.rowId})" class="text-red-400 hover:text-red-500 text-[11px] font-medium">🗑 ลบ</button>`
+            : `<span class="text-gray-300">-</span>`;
+          h += `<tr class="tr-row"><td class="p-2.5 pl-4 font-semibold text-orange-600">${item.date}</td><td class="p-2.5 text-gray-700">${item.event}</td><td class="p-2.5 text-center">${manageBtn}</td></tr>`;
         });
-        document.getElementById('calendar-body').innerHTML = h || "<tr><td colspan='2' class='p-4 text-center text-gray-400'>ยังไม่มีกำหนดการซ้อม</td></tr>";
+        document.getElementById('calendar-body').innerHTML = h || "<tr><td colspan='3' class='p-4 text-center text-gray-400'>ยังไม่มีกำหนดการซ้อม</td></tr>";
       }).getCalendarData();
+    }
+
+    function submitCalendarEvent() {
+      const date = document.getElementById('cal-date').value;
+      const eventText = document.getElementById('cal-event').value;
+      if (!date || !eventText) return triggerAlert("ข้อมูลไม่ครบถ้วน", "กรุณาเลือกวันที่และกรอกชื่อกิจกรรม", "⚠️");
+      google.script.run.withSuccessHandler(res => {
+        if (res.success) {
+          toggleModal('calendarModal');
+          document.getElementById('cal-date').value = "";
+          document.getElementById('cal-event').value = "";
+          triggerAlert("เพิ่มกิจกรรมสำเร็จ ✅", "เพิ่มกิจกรรมลงปฏิทินเรียบร้อยแล้ว", "📅");
+          loadCalendar();
+        } else {
+          triggerAlert("เพิ่มไม่สำเร็จ", res.message || "เกิดข้อผิดพลาด", "❌");
+        }
+      }).addCalendarEvent(date, eventText);
+    }
+
+    function deleteCalendarEvent(rowId) {
+      if (!confirm("ยืนยันลบกิจกรรมนี้ออกจากปฏิทิน?")) return;
+      google.script.run.withSuccessHandler(res => {
+        if (res.success) {
+          triggerAlert("ลบสำเร็จ ✅", "ลบกิจกรรมออกจากปฏิทินแล้ว", "🗑");
+          loadCalendar();
+        } else {
+          triggerAlert("ลบไม่สำเร็จ", res.message || "เกิดข้อผิดพลาด", "❌");
+        }
+      }).deleteCalendarEvent(rowId);
     }
 
     // --- 3. ระบบกล้องถอดรหัส (เน้นแก้ปัญหา Sandbox iframe บล็อกสิทธิ์) ---
@@ -611,15 +677,21 @@
       let p = document.getElementById('password').value;
       google.script.run.withSuccessHandler(res => {
         if(res.success) {
-          loggedInUser = u; toggleModal('loginModal');
+          loggedInUser = u; loggedInRole = res.role; toggleModal('loginModal');
           document.getElementById('loginBtn').classList.add('hidden');
           document.getElementById('adminPanel').classList.remove('hidden');
-          document.getElementById('adminName').innerText = "ผู้คุมซุ้ม: " + u;
-          document.getElementById('actionRow').classList.remove('hidden');
-          
+          document.getElementById('adminName').innerText = "ผู้คุมซุ้ม: " + u + (loggedInRole === 'admin' ? " (ผู้ดูแล)" : "");
+
           document.getElementById('staffManualRow').classList.remove('opacity-40', 'pointer-events-none');
           document.getElementById('staffManualNotice').classList.add('hidden');
-          
+
+          // เปิดปุ่มจัดการข้อมูล (เพิ่ม/ลบ บัญชี, ปฏิทิน) เฉพาะ role = admin เท่านั้น
+          if (loggedInRole === 'admin') {
+            document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+          }
+          loadFinance();
+          loadCalendar();
+
           startCamera(); 
           triggerAlert("ยินดีต้อนรับสตาฟสีแสด", "เปิดระบบสแกนเครื่องกลางและแผงควบคุมสตาฟแล้วครับ", "🍊");
         } else { triggerAlert("ข้อผิดพลาด", res.message, "❌"); }
@@ -628,12 +700,16 @@
 
     function logoutProcess() {
       loggedInUser = null;
+      loggedInRole = null;
       document.getElementById('loginBtn').classList.remove('hidden');
       document.getElementById('adminPanel').classList.add('hidden');
-      document.getElementById('actionRow').classList.add('hidden');
+      document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
       document.getElementById('staffManualRow').classList.add('opacity-40', 'pointer-events-none');
       document.getElementById('staffManualNotice').classList.remove('hidden');
-      
+
+      loadFinance();
+      loadCalendar();
+
       stopCamera(); 
       triggerAlert("ปิดระบบเสร็จสิ้น", "🔒 ล็อกเครื่องกลางและปิดกล้องสแกนเรียบร้อยแล้วครับ", "🔒");
     }
