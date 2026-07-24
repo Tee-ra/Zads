@@ -169,6 +169,7 @@
         <div class="flex justify-between items-center">
           <h3 class="text-base font-bold text-gray-800">📅 ตารางปฏิทินและวันซ้อมสีแสด</h3>
           <button id="calendarAddBtn" onclick="toggleModal('calendarModal')" class="admin-only hidden btn-apple-orange px-4 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap">+ เพิ่มกิจกรรม</button>
+          <button id="calendarSyncBtn" onclick="syncCalendarNow()" class="admin-only hidden bg-gray-100 text-gray-500 px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap ml-2">🔄 ซิงก์จาก Calendar</button>
         </div>
         <div class="overflow-y-auto max-h-[280px]">
           <table class="w-full text-xs text-left">
@@ -460,6 +461,18 @@
           triggerAlert("ลบไม่สำเร็จ", res.message || "เกิดข้อผิดพลาด", "❌");
         }
       }).deleteCalendarEvent(rowId);
+    }
+
+    function syncCalendarNow() {
+      triggerAlert("กำลังซิงก์... ⏳", "กำลังดึงข้อมูลล่าสุดจาก Google Calendar กรุณารอสักครู่", "🔄");
+      google.script.run.withSuccessHandler(res => {
+        if (res.success) {
+          triggerAlert("ซิงก์สำเร็จ ✅", `เพิ่มใหม่ ${res.added} รายการ, ลบออก ${res.removed} รายการ`, "🔄");
+          loadCalendar();
+        } else {
+          triggerAlert("ซิงก์ไม่สำเร็จ", res.message || "เกิดข้อผิดพลาด", "❌");
+        }
+      }).syncCalendarFromGoogle();
     }
 
     // --- 3. ระบบกล้องถอดรหัส (เน้นแก้ปัญหา Sandbox iframe บล็อกสิทธิ์) ---
