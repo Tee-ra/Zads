@@ -22,6 +22,23 @@
     /* บังคับการแสดงผลกล้องให้เต็มพื้นที่และไม่จอดำ */
     #reader video { width: 100% !important; height: 100% !important; object-fit: cover !important; border-radius: 16px; }
     #reader__scan_region { background: #000 !important; }
+
+    /* --- โหมดเต็มจอกันโกง (Kiosk Mode) --- */
+    body.kiosk-mode { overflow: hidden; }
+    body.kiosk-mode #topNav,
+    body.kiosk-mode #tabNavRow,
+    body.kiosk-mode #staffPanelCard { display: none !important; }
+    body.kiosk-mode main { padding: 0; max-width: none; }
+    #scannerCard.kiosk-mode-card {
+      position: fixed; inset: 0; z-index: 9999; border-radius: 0;
+      background: #000; display: flex; flex-direction: column; justify-content: center;
+      padding: 24px; gap: 14px; max-width: 480px; margin: 0 auto;
+    }
+    #scannerCard.kiosk-mode-card,
+    #scannerCard.kiosk-mode-card * { color: #fff !important; }
+    #scannerCard.kiosk-mode-card select,
+    #scannerCard.kiosk-mode-card #cameraSelect { background: #1a1a1a !important; }
+    #scannerCard.kiosk-mode-card #lockNotice { background: #1a1a1a !important; border-color: #333 !important; }
   </style>
 </head>
 <body class="antialiased">
@@ -35,7 +52,7 @@
     <button onclick="closeAlert()" class="btn-apple-orange px-5 py-2 rounded-full text-xs w-full">รับทราบ</button>
   </div>
 
-  <nav class="sticky top-0 z-40 apple-nav">
+  <nav id="topNav" class="sticky top-0 z-40 apple-nav kiosk-hide">
     <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
       <div class="text-lg font-semibold tracking-tight">🍊 สีแสด <span class="orange-accent">Super Portal</span></div>
       <div id="loginSection">
@@ -50,7 +67,7 @@
 
   <main class="max-w-5xl mx-auto px-6 py-10 space-y-6">
     
-    <div class="flex border-b border-gray-200 gap-6 text-sm overflow-x-auto whitespace-nowrap">
+    <div id="tabNavRow" class="kiosk-hide flex border-b border-gray-200 gap-6 text-sm overflow-x-auto whitespace-nowrap">
       <button id="tabFinanceBtn" onclick="switchTab('finance')" class="tab-btn active py-2 transition">💰 บัญชีงบประมาณ</button>
       <button id="tabScannerBtn" onclick="switchTab('scanner')" class="tab-btn py-2 transition">📸 กล้องสแกนเช็กชื่อ</button>
       <button id="tabLeaveBtn" onclick="switchTab('leave')" class="tab-btn py-2 transition">📝 แจ้งลา & ปฏิทิน</button>
@@ -84,8 +101,14 @@
 
     <div id="sectionScanner" class="space-y-6 hidden">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="apple-card p-6 md:col-span-1 space-y-4">
-          <h3 class="text-base font-bold text-gray-800">เครื่องสแกนเช็กชื่อหน้าซุ้ม</h3>
+        <div id="scannerCard" class="apple-card p-6 md:col-span-1 space-y-4">
+          <div class="flex justify-between items-center">
+            <h3 class="text-base font-bold text-gray-800">เครื่องสแกนเช็กชื่อหน้าซุ้ม</h3>
+            <div class="flex items-center gap-3">
+              <button id="enterKioskBtn" onclick="enterKioskMode()" title="โหมดเต็มจอกันโกง" class="text-gray-400 hover:text-orange-600 transition text-sm">⛶</button>
+              <button id="exitKioskBtn" onclick="requestExitKiosk()" class="hidden text-[11px] text-white/60 hover:text-white border border-white/20 px-2.5 py-1 rounded-full">🔒 ออกจากโหมด</button>
+            </div>
+          </div>
           <div>
             <label class="block text-xs font-medium text-gray-400 mb-1">เลือกประเภทบันทึกเวลา:</label>
             <select id="attendance-type" class="w-full p-2.5 bg-gray-100 border-none rounded-xl text-xs font-medium focus:outline-none">
@@ -110,7 +133,7 @@
           </div>
         </div>
         
-        <div class="apple-card p-6 md:col-span-2 space-y-4">
+        <div id="staffPanelCard" class="apple-card p-6 md:col-span-2 space-y-4 kiosk-hide">
           <div class="flex justify-between items-center"><h3 class="text-sm font-bold text-gray-800">แผงจัดการประวัติ/บันทึกการขาด-ทดแทนสำหรับสตาฟ</h3></div>
           <div id="staffManualRow" class="grid grid-cols-1 sm:grid-cols-4 gap-2 opacity-40 pointer-events-none">
             <input type="text" id="manual-id" placeholder="รหัสนักเรียน" class="p-2 bg-gray-50 text-xs rounded-xl focus:outline-none border-none">
@@ -233,6 +256,19 @@
       <div class="flex gap-2">
         <button onclick="toggleModal('calendarModal')" class="w-1/2 py-2 bg-gray-100 text-gray-400 text-xs rounded-xl">ยกเลิก</button>
         <button onclick="submitCalendarEvent()" class="w-1/2 py-2 btn-apple-orange text-xs rounded-xl">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="kioskExitModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[10000] p-4">
+    <div class="bg-white rounded-[24px] p-6 w-full max-w-xs">
+      <h3 class="text-base font-bold text-gray-900 mb-1">ยืนยันตัวตนก่อนออก</h3>
+      <p class="text-[11px] text-gray-400 mb-4">กรอกรหัสผ่านสตาฟเพื่อออกจากโหมดเต็มจอ ป้องกันไม่ให้นักเรียนกดออกเอง</p>
+      <input type="text" id="kiosk-exit-user" placeholder="ชื่อผู้ใช้" class="w-full mb-2 p-3 bg-gray-100 rounded-xl text-xs focus:outline-none">
+      <input type="password" id="kiosk-exit-pass" placeholder="รหัสผ่าน" class="w-full mb-4 p-3 bg-gray-100 rounded-xl text-xs focus:outline-none">
+      <div class="flex gap-2">
+        <button onclick="document.getElementById('kioskExitModal').classList.add('hidden')" class="w-1/2 py-2 bg-gray-100 text-gray-400 text-xs rounded-xl">ยกเลิก</button>
+        <button onclick="confirmExitKiosk()" class="w-1/2 py-2 btn-apple-orange text-xs rounded-xl">ยืนยันออก</button>
       </div>
     </div>
   </div>
@@ -537,6 +573,60 @@
       }
     }
 
+    // --- โหมดเต็มจอกันโกง (Kiosk Mode) ---
+    // แสดงเฉพาะกล้อง ซ่อนเมนู/แผงพิมพ์รหัสด้วยมือ ป้องกันนักเรียนพิมพ์เช็กชื่อแทนเพื่อน
+    function enterKioskMode() {
+      if (!loggedInUser) {
+        triggerAlert("ต้องล็อกอินก่อน 🔒", "กรุณาล็อกอินสตาฟและเปิดกล้องให้ทำงานก่อนเข้าโหมดเต็มจอครับ", "🔒");
+        return;
+      }
+      document.body.classList.add('kiosk-mode');
+      document.getElementById('scannerCard').classList.add('kiosk-mode-card');
+      document.getElementById('enterKioskBtn').classList.add('hidden');
+      document.getElementById('exitKioskBtn').classList.remove('hidden');
+
+      // ลองขอ fullscreen จริงของเบราว์เซอร์เพิ่มเติม (บาง browser เช่น iOS Safari จะไม่รองรับ แต่ไม่เป็นไร
+      // เพราะโหมดเต็มจอแบบ CSS ด้านบนทำงานอยู่แล้วโดยไม่ต้องพึ่งฟีเจอร์นี้)
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+      // กันการกดปุ่มย้อนกลับของมือถือเพื่อออกจากโหมด
+      history.pushState(null, '', location.href);
+    }
+
+    window.addEventListener('popstate', function() {
+      if (document.body.classList.contains('kiosk-mode')) {
+        history.pushState(null, '', location.href);
+        requestExitKiosk();
+      }
+    });
+
+    function requestExitKiosk() {
+      document.getElementById('kioskExitModal').classList.remove('hidden');
+    }
+
+    function confirmExitKiosk() {
+      const u = document.getElementById('kiosk-exit-user').value;
+      const p = document.getElementById('kiosk-exit-pass').value;
+      if (!u || !p) return triggerAlert("กรอกไม่ครบ", "กรุณากรอกชื่อผู้ใช้และรหัสผ่าน", "⚠️");
+      google.script.run.withSuccessHandler(res => {
+        if (res.success) {
+          document.body.classList.remove('kiosk-mode');
+          document.getElementById('scannerCard').classList.remove('kiosk-mode-card');
+          document.getElementById('enterKioskBtn').classList.remove('hidden');
+          document.getElementById('exitKioskBtn').classList.add('hidden');
+          document.getElementById('kioskExitModal').classList.add('hidden');
+          document.getElementById('kiosk-exit-user').value = "";
+          document.getElementById('kiosk-exit-pass').value = "";
+          if (document.fullscreenElement && document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          }
+        } else {
+          triggerAlert("รหัสผ่านไม่ถูกต้อง ❌", "ไม่สามารถออกจากโหมดเต็มจอได้ กรุณาลองใหม่", "🔒");
+        }
+      }).checkLogin(u, p);
+    }
+
     // สลับกล้องหน้า/หลัง (หรือวนไปทีละตัวถ้ามีมากกว่า 2 กล้อง)
     function flipCamera() {
       if (!availableCameras || availableCameras.length < 2) {
@@ -730,6 +820,12 @@
       document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
       document.getElementById('staffManualRow').classList.add('opacity-40', 'pointer-events-none');
       document.getElementById('staffManualNotice').classList.remove('hidden');
+
+      // ปิดโหมดเต็มจอด้วย (ถ้าเปิดค้างอยู่) เพื่อความปลอดภัย
+      document.body.classList.remove('kiosk-mode');
+      document.getElementById('scannerCard').classList.remove('kiosk-mode-card');
+      document.getElementById('enterKioskBtn').classList.remove('hidden');
+      document.getElementById('exitKioskBtn').classList.add('hidden');
 
       loadFinance();
       loadCalendar();
