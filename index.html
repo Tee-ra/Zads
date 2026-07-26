@@ -39,9 +39,26 @@
     #scannerCard.kiosk-mode-card select,
     #scannerCard.kiosk-mode-card #cameraSelect { background: #1a1a1a !important; }
     #scannerCard.kiosk-mode-card #lockNotice { background: #1a1a1a !important; border-color: #333 !important; }
+    .loading-spinner {
+      width: 20px; height: 20px;
+      border: 3px solid #f0f0f0;
+      border-top-color: #FF5E00;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body class="antialiased">
+
+  <!-- ตัวบอกสถานะ "กำลังโหลด" แบบรวมศูนย์ — ขึ้นทุกครั้งที่มีการติดต่อกับ Apps Script -->
+  <!-- บล็อกการคลิกซ้ำระหว่างรอ ป้องกันข้อมูลซ้ำจากการกดปุ่มหลายครั้ง -->
+  <div id="globalLoadingOverlay" class="hidden fixed inset-0 z-[10000] bg-black/20 backdrop-blur-[2px] flex items-center justify-center">
+    <div class="bg-white/95 rounded-2xl px-6 py-4 flex items-center gap-3 shadow-xl">
+      <div class="loading-spinner"></div>
+      <span class="text-xs font-medium text-gray-600">กำลังโหลดข้อมูล...</span>
+    </div>
+  </div>
 
   <div id="blurOverlay" class="blur-overlay" onclick="closeAlert()"></div>
 
@@ -166,19 +183,49 @@
       </div>
       
       <div class="apple-card p-6 md:col-span-2 space-y-4">
-        <div class="flex justify-between items-center">
+        <div class="flex justify-between items-center flex-wrap gap-2">
           <h3 class="text-base font-bold text-gray-800">📅 ตารางปฏิทินและวันซ้อมสีแสด</h3>
-          <button id="calendarAddBtn" onclick="toggleModal('calendarModal')" class="admin-only hidden btn-apple-orange px-4 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap">+ เพิ่มกิจกรรม</button>
-          <button id="calendarSyncBtn" onclick="syncCalendarNow()" class="admin-only hidden bg-gray-100 text-gray-500 px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap ml-2">🔄 ซิงก์จาก Calendar</button>
+          <div class="flex items-center gap-2">
+            <div class="flex bg-gray-100 rounded-full p-0.5 text-[11px] font-medium">
+              <button id="calViewListBtn" onclick="setCalendarView('list')" class="px-3 py-1 rounded-full bg-white shadow-sm text-gray-700">📋 รายการ</button>
+              <button id="calViewGridBtn" onclick="setCalendarView('grid')" class="px-3 py-1 rounded-full text-gray-400">🗓 ปฏิทิน</button>
+            </div>
+            <button id="calendarAddBtn" onclick="openCalendarModal()" class="admin-only hidden btn-apple-orange px-4 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap">+ เพิ่มกิจกรรม</button>
+            <button id="calendarSyncBtn" onclick="syncCalendarNow()" class="admin-only hidden bg-gray-100 text-gray-500 px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap">🔄 ซิงก์</button>
+          </div>
         </div>
-        <div class="overflow-y-auto max-h-[280px]">
+
+        <!-- มุมมองรายการ (ตารางเดิม) -->
+        <div id="calendarListView" class="overflow-y-auto max-h-[280px]">
           <table class="w-full text-xs text-left">
-            <thead><tr class="bg-gray-50 text-gray-400 uppercase border-b border-gray-100"><th class="p-2.5 pl-4">วันที่กิจกรรม</th><th class="p-2.5">รายละเอียด/หัวข้อกิจกรรม</th><th class="p-2.5 text-center">จัดการ</th></tr></thead>
+            <thead><tr class="bg-gray-50 text-gray-400 uppercase border-b border-gray-100"><th class="p-2.5 pl-4">วันที่กิจกรรม</th><th class="p-2.5">รายละเอียด/หัวข้อกิจกรรม</th><th class="p-2.5">คนที่ต้องเข้า</th><th class="p-2.5 text-center">จัดการ</th></tr></thead>
             <tbody id="calendar-body" class="divide-y divide-gray-50">
-              <tr><td colspan="3" class="p-4 text-center text-gray-400">กำลังดึงปฏิทินกิจกรรม...</td></tr>
+              <tr><td colspan="4" class="p-4 text-center text-gray-400">กำลังดึงปฏิทินกิจกรรม...</td></tr>
             </tbody>
           </table>
         </div>
+
+        <!-- มุมมองตารางปฏิทิน (grid รายเดือน) -->
+        <div id="calendarGridView" class="hidden">
+          <div class="flex justify-between items-center mb-3">
+            <button onclick="changeCalendarMonth(-1)" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition">‹</button>
+            <span id="calGridMonthLabel" class="text-sm font-semibold text-gray-700"></span>
+            <button onclick="changeCalendarMonth(1)" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition">›</button>
+          </div>
+          <div class="grid grid-cols-7 gap-1 text-center text-[10px] text-gray-400 mb-1">
+            <div>อา</div><div>จ</div><div>อ</div><div>พ</div><div>พฤ</div><div>ศ</div><div>ส</div>
+          </div>
+          <div id="calGridCells" class="grid grid-cols-7 gap-1"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- popup แสดงรายละเอียดกิจกรรมของวันที่เลือกในมุมมองปฏิทิน -->
+    <div id="calDayDetailModal" class="fixed inset-0 bg-black/10 backdrop-blur-sm hidden flex items-center justify-center z-50">
+      <div class="bg-white/95 backdrop-blur-md rounded-[24px] p-6 w-full max-w-sm border border-white/20 shadow-xl">
+        <h3 id="calDayDetailTitle" class="text-base font-bold text-gray-900 mb-3"></h3>
+        <div id="calDayDetailBody" class="space-y-3 max-h-[300px] overflow-y-auto text-xs"></div>
+        <button onclick="toggleModal('calDayDetailModal')" class="w-full mt-4 py-2 bg-gray-100 text-gray-500 text-xs rounded-xl">ปิด</button>
       </div>
     </div>
 
@@ -250,10 +297,23 @@
   </div>
 
   <div id="calendarModal" class="fixed inset-0 bg-black/10 backdrop-blur-sm hidden flex items-center justify-center z-50">
-    <div class="bg-white/90 backdrop-blur-md rounded-[24px] p-6 w-full max-w-xs border border-white/20 shadow-xl">
+    <div class="bg-white/90 backdrop-blur-md rounded-[24px] p-6 w-full max-w-sm border border-white/20 shadow-xl">
       <h3 class="text-base font-bold text-gray-900 mb-4">เพิ่มกิจกรรมในปฏิทิน</h3>
       <input type="date" id="cal-date" class="w-full mb-2 p-3 bg-gray-100 rounded-xl text-xs focus:outline-none">
-      <input type="text" id="cal-event" placeholder="ชื่อกิจกรรม/รายละเอียด" class="w-full mb-4 p-3 bg-gray-100 rounded-xl text-xs focus:outline-none">
+      <input type="text" id="cal-event" placeholder="ชื่อกิจกรรม/รายละเอียด" class="w-full mb-3 p-3 bg-gray-100 rounded-xl text-xs focus:outline-none">
+
+      <label class="flex items-center gap-2 mb-2 text-xs text-gray-600 font-medium">
+        <input type="checkbox" id="cal-require-all" checked onchange="toggleRosterPicker()" class="rounded">
+        ทุกคนต้องเข้าบ้านสีวันนี้
+      </label>
+
+      <div id="cal-roster-picker" class="hidden mb-3">
+        <p class="text-[10px] text-gray-400 mb-1">เลือกเฉพาะคนที่ต้องเข้าวันนี้:</p>
+        <div id="cal-roster-list" class="max-h-[160px] overflow-y-auto bg-gray-50 rounded-xl p-2 space-y-1 text-xs">
+          <p class="text-gray-400 text-center py-2">กำลังโหลดรายชื่อนักเรียน...</p>
+        </div>
+      </div>
+
       <div class="flex gap-2">
         <button onclick="toggleModal('calendarModal')" class="w-1/2 py-2 bg-gray-100 text-gray-400 text-xs rounded-xl">ยกเลิก</button>
         <button onclick="submitCalendarEvent()" class="w-1/2 py-2 btn-apple-orange text-xs rounded-xl">บันทึก</button>
@@ -282,7 +342,21 @@
     // --- Shim: ทำให้ google.script.run.withSuccessHandler(cb).ฟังก์ชัน(args) ---
     // --- ทำงานผ่าน fetch() ไปหา Apps Script (doPost) แทนของเดิม ---
     // เขียนแบบนี้เพื่อให้โค้ดส่วนที่เหลือทั้งหมดในไฟล์นี้ไม่ต้องแก้อะไรเลย
+    // --- ตัวแสดงสถานะ "กำลังโหลด" แบบรวมศูนย์ (บล็อกการคลิกซ้ำระหว่างรอข้อมูล) ---
+    let pendingRequestCount = 0;
+    function showLoadingOverlay() {
+      pendingRequestCount++;
+      document.getElementById('globalLoadingOverlay').classList.remove('hidden');
+    }
+    function hideLoadingOverlay() {
+      pendingRequestCount = Math.max(0, pendingRequestCount - 1);
+      if (pendingRequestCount === 0) {
+        document.getElementById('globalLoadingOverlay').classList.add('hidden');
+      }
+    }
+
     function gasCall(fnName, args, successFn, failFn) {
+      showLoadingOverlay();
       fetch(APPS_SCRIPT_URL, {
         method: "POST",
         // ใช้ text/plain เพื่อเลี่ยง CORS preflight (Apps Script ไม่รองรับ OPTIONS request)
@@ -291,6 +365,7 @@
       })
         .then(res => res.json())
         .then(data => {
+          hideLoadingOverlay();
           if (data.__error) {
             if (failFn) failFn(data.__error); else console.error(data.__error);
           } else if (successFn) {
@@ -298,6 +373,7 @@
           }
         })
         .catch(err => {
+          hideLoadingOverlay();
           console.error("gasCall network error:", err);
           if (failFn) failFn(err.toString());
           else triggerAlert("เชื่อมต่อไม่สำเร็จ ❌", "ตรวจสอบอินเทอร์เน็ต หรือ APPS_SCRIPT_URL ให้ถูกต้อง", "❌");
@@ -421,23 +497,167 @@
     }
 
     // --- 2. โหลดปฏิทินกิจกรรม ---
+    let calendarEventsCache = [];
+    let allStudentsCache = [];
+    let calGridDate = new Date(); // เดือน/ปีที่กำลังแสดงในมุมมองปฏิทิน
+    const thaiMonths = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+
     function loadCalendar() {
       google.script.run.withSuccessHandler(list => {
+        calendarEventsCache = list;
         let h = "";
         list.forEach(item => {
           let manageBtn = loggedInRole === 'admin'
             ? `<button onclick="deleteCalendarEvent(${item.rowId})" class="text-red-400 hover:text-red-500 text-[11px] font-medium">🗑 ลบ</button>`
             : `<span class="text-gray-300">-</span>`;
-          h += `<tr class="tr-row"><td class="p-2.5 pl-4 font-semibold text-orange-600">${item.date}</td><td class="p-2.5 text-gray-700">${item.event}</td><td class="p-2.5 text-center">${manageBtn}</td></tr>`;
+          let rosterText = (item.requiredNames && item.requiredNames.length > 0)
+            ? `<span class="text-orange-600 font-medium">${item.requiredNames.length} คน:</span> ${item.requiredNames.join(', ')}`
+            : `<span class="text-gray-400 italic">ทุกคน</span>`;
+          h += `<tr class="tr-row"><td class="p-2.5 pl-4 font-semibold text-orange-600 whitespace-nowrap">${item.date}</td><td class="p-2.5 text-gray-700">${item.event}</td><td class="p-2.5 text-gray-500 max-w-[180px]">${rosterText}</td><td class="p-2.5 text-center">${manageBtn}</td></tr>`;
         });
-        document.getElementById('calendar-body').innerHTML = h || "<tr><td colspan='3' class='p-4 text-center text-gray-400'>ยังไม่มีกำหนดการซ้อม</td></tr>";
+        document.getElementById('calendar-body').innerHTML = h || "<tr><td colspan='4' class='p-4 text-center text-gray-400'>ยังไม่มีกำหนดการซ้อม</td></tr>";
+
+        if (!document.getElementById('calendarGridView').classList.contains('hidden')) {
+          renderCalendarGrid();
+        }
       }).getCalendarData();
+    }
+
+    // --- สลับมุมมอง รายการ / ปฏิทิน ---
+    function setCalendarView(view) {
+      const listBtn = document.getElementById('calViewListBtn');
+      const gridBtn = document.getElementById('calViewGridBtn');
+      const listView = document.getElementById('calendarListView');
+      const gridView = document.getElementById('calendarGridView');
+      if (view === 'grid') {
+        listView.classList.add('hidden');
+        gridView.classList.remove('hidden');
+        listBtn.classList.remove('bg-white', 'shadow-sm', 'text-gray-700');
+        listBtn.classList.add('text-gray-400');
+        gridBtn.classList.add('bg-white', 'shadow-sm', 'text-gray-700');
+        gridBtn.classList.remove('text-gray-400');
+        renderCalendarGrid();
+      } else {
+        gridView.classList.add('hidden');
+        listView.classList.remove('hidden');
+        gridBtn.classList.remove('bg-white', 'shadow-sm', 'text-gray-700');
+        gridBtn.classList.add('text-gray-400');
+        listBtn.classList.add('bg-white', 'shadow-sm', 'text-gray-700');
+        listBtn.classList.remove('text-gray-400');
+      }
+    }
+
+    function changeCalendarMonth(delta) {
+      calGridDate.setMonth(calGridDate.getMonth() + delta);
+      renderCalendarGrid();
+    }
+
+    // แปลง "dd/MM/yyyy" ที่ backend ส่งมา ให้เป็น key เทียบวันที่ได้ง่ายๆ
+    function parseThaiDateKey(dateStr) {
+      const parts = dateStr.split('/');
+      if (parts.length !== 3) return null;
+      return `${parts[2]}-${parts[1]}-${parts[0]}`; // yyyy-MM-dd
+    }
+
+    function renderCalendarGrid() {
+      const year = calGridDate.getFullYear();
+      const month = calGridDate.getMonth();
+      document.getElementById('calGridMonthLabel').innerText = `${thaiMonths[month]} ${year + 543}`;
+
+      // จัดกลุ่มกิจกรรมตามวันที่ (key: yyyy-MM-dd)
+      let eventsByDate = {};
+      calendarEventsCache.forEach(ev => {
+        const key = parseThaiDateKey(ev.date);
+        if (!key) return;
+        if (!eventsByDate[key]) eventsByDate[key] = [];
+        eventsByDate[key].push(ev);
+      });
+
+      const firstDay = new Date(year, month, 1);
+      const startWeekday = firstDay.getDay(); // 0=อา
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const todayKey = (() => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; })();
+
+      let cellsHtml = "";
+      for (let i = 0; i < startWeekday; i++) {
+        cellsHtml += `<div></div>`;
+      }
+      for (let day = 1; day <= daysInMonth; day++) {
+        const key = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        const hasEvent = !!eventsByDate[key];
+        const isToday = key === todayKey;
+        cellsHtml += `
+          <div onclick="${hasEvent ? `showDayDetail('${key}')` : ''}" class="aspect-square flex flex-col items-center justify-center rounded-xl text-[11px] ${hasEvent ? 'cursor-pointer bg-orange-50 hover:bg-orange-100 border border-orange-100' : 'text-gray-400'} ${isToday ? 'ring-2 ring-orange-400' : ''}">
+            <span class="${hasEvent ? 'font-semibold text-orange-700' : ''}">${day}</span>
+            ${hasEvent ? '<span class="w-1 h-1 rounded-full bg-orange-500 mt-0.5"></span>' : ''}
+          </div>`;
+      }
+      document.getElementById('calGridCells').innerHTML = cellsHtml;
+    }
+
+    function showDayDetail(dateKey) {
+      const parts = dateKey.split('-');
+      const displayDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      const events = calendarEventsCache.filter(ev => parseThaiDateKey(ev.date) === dateKey);
+      document.getElementById('calDayDetailTitle').innerText = `📅 ${displayDate}`;
+
+      let body = "";
+      events.forEach(ev => {
+        const roster = (ev.requiredNames && ev.requiredNames.length > 0)
+          ? `<span class="text-orange-600 font-medium">ต้องเข้า ${ev.requiredNames.length} คน:</span> ${ev.requiredNames.join(', ')}`
+          : `<span class="text-gray-400 italic">ทุกคนต้องเข้า</span>`;
+        body += `<div class="p-3 bg-gray-50 rounded-xl"><p class="font-semibold text-gray-800 mb-1">${ev.event}</p><p class="text-gray-500">${roster}</p></div>`;
+      });
+      document.getElementById('calDayDetailBody').innerHTML = body || "<p class='text-gray-400'>ไม่มีกิจกรรม</p>";
+      toggleModal('calDayDetailModal');
+    }
+
+    // --- modal เพิ่มกิจกรรม + ตัวเลือกคนที่ต้องเข้า ---
+    function openCalendarModal() {
+      document.getElementById('cal-require-all').checked = true;
+      document.getElementById('cal-roster-picker').classList.add('hidden');
+      toggleModal('calendarModal');
+
+      if (allStudentsCache.length === 0) {
+        google.script.run.withSuccessHandler(list => {
+          allStudentsCache = list;
+          renderRosterPicker();
+        }).getAllStudents();
+      } else {
+        renderRosterPicker();
+      }
+    }
+
+    function renderRosterPicker() {
+      let h = "";
+      allStudentsCache.forEach(s => {
+        h += `<label class="flex items-center gap-2 py-1 hover:bg-gray-100 rounded px-1 cursor-pointer">
+                <input type="checkbox" class="cal-roster-checkbox rounded" value="${s.id}">
+                <span>${s.nickname || s.name} <span class="text-gray-400">(${s.id})</span></span>
+              </label>`;
+      });
+      document.getElementById('cal-roster-list').innerHTML = h || "<p class='text-gray-400 text-center py-2'>ไม่พบรายชื่อนักเรียน</p>";
+    }
+
+    function toggleRosterPicker() {
+      const requireAll = document.getElementById('cal-require-all').checked;
+      document.getElementById('cal-roster-picker').classList.toggle('hidden', requireAll);
     }
 
     function submitCalendarEvent() {
       const date = document.getElementById('cal-date').value;
       const eventText = document.getElementById('cal-event').value;
       if (!date || !eventText) return triggerAlert("ข้อมูลไม่ครบถ้วน", "กรุณาเลือกวันที่และกรอกชื่อกิจกรรม", "⚠️");
+
+      const requireAll = document.getElementById('cal-require-all').checked;
+      let studentIds = [];
+      if (!requireAll) {
+        document.querySelectorAll('.cal-roster-checkbox:checked').forEach(cb => studentIds.push(cb.value));
+        if (studentIds.length === 0) {
+          return triggerAlert("ยังไม่ได้เลือกคน", "กรุณาเลือกอย่างน้อย 1 คน หรือติ๊ก \"ทุกคนต้องเข้า\" แทน", "⚠️");
+        }
+      }
+
       google.script.run.withSuccessHandler(res => {
         if (res.success) {
           toggleModal('calendarModal');
@@ -448,7 +668,7 @@
         } else {
           triggerAlert("เพิ่มไม่สำเร็จ", res.message || "เกิดข้อผิดพลาด", "❌");
         }
-      }).addCalendarEvent(date, eventText);
+      }).addCalendarEvent(date, eventText, studentIds);
     }
 
     function deleteCalendarEvent(rowId) {
