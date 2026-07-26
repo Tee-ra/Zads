@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <script>
+    // ใส่คลาส dark ให้เร็วที่สุดก่อนหน้าเว็บ render เพื่อไม่ให้เห็นจอสว่างวาบก่อนสลับเป็นมืด
+    if (localStorage.getItem('colorTheme') === 'dark') document.documentElement.classList.add('dark');
+  </script>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -47,6 +51,43 @@
       animation: spin 0.7s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ==========================================
+       โหมดมืด (Dark Mode)
+       ครอบคลุม class ของ Tailwind ที่ใช้อยู่ในเว็บทั้งหมด
+       ========================================== */
+    html.dark body { background-color: #0d0d0f; color: #e5e5e7; }
+    html.dark .apple-nav { background: rgba(20,20,22,0.85) !important; border-bottom-color: rgba(255,255,255,0.06) !important; }
+    html.dark .apple-card,
+    html.dark .bg-white,
+    html.dark .bg-white\/90,
+    html.dark .bg-white\/95 { background-color: #1c1c1e !important; border-color: rgba(255,255,255,0.06) !important; }
+    html.dark .bg-gray-50,
+    html.dark .bg-gray-100 { background-color: #2a2a2d !important; }
+    html.dark .text-gray-800,
+    html.dark .text-gray-700 { color: #f0f0f2 !important; }
+    html.dark .text-gray-600,
+    html.dark .text-gray-500 { color: #b5b5ba !important; }
+    html.dark .text-gray-400,
+    html.dark .text-gray-300 { color: #7a7a80 !important; }
+    html.dark .border-gray-100,
+    html.dark .border-gray-200 { border-color: rgba(255,255,255,0.08) !important; }
+    html.dark .divide-gray-50 > * + * { border-color: rgba(255,255,255,0.06) !important; }
+    html.dark .tr-row:hover { background-color: #232326 !important; }
+    html.dark input,
+    html.dark select,
+    html.dark textarea { background-color: #2a2a2d !important; color: #f0f0f2 !important; }
+    html.dark input::placeholder { color: #6f6f75 !important; }
+    html.dark #appleAlert { background: rgba(28,28,30,0.97) !important; color: #f0f0f2 !important; }
+    html.dark .tab-btn { color: #9a9a9e; }
+    html.dark .orange-accent,
+    html.dark .tab-btn.active { color: #FF7A2E !important; }
+    html.dark .bg-orange-50 { background-color: rgba(255,94,0,0.12) !important; }
+    html.dark .bg-amber-50 { background-color: rgba(245,158,11,0.12) !important; }
+    html.dark .bg-green-50 { background-color: rgba(34,197,94,0.12) !important; }
+    html.dark .bg-red-50,
+    html.dark .bg-black\/10 { background-color: rgba(0,0,0,0.4) !important; }
+    html.dark ::-webkit-scrollbar { background: #1c1c1e; }
   </style>
 </head>
 <body class="antialiased">
@@ -72,11 +113,14 @@
   <nav id="topNav" class="sticky top-0 z-40 apple-nav kiosk-hide">
     <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
       <div class="text-lg font-semibold tracking-tight">🍊 สีแสด <span class="orange-accent">Super Portal</span></div>
-      <div id="loginSection">
-        <button id="loginBtn" onclick="toggleModal('loginModal')" class="text-sm text-gray-400 hover:text-orange-500 transition">สตาฟคุมเครื่อง</button>
-        <div id="adminPanel" class="hidden flex items-center gap-4">
-          <span id="adminName" class="text-xs bg-orange-50 text-orange-600 px-3 py-1 rounded-full border border-orange-100 font-medium"></span>
-          <button onclick="logoutProcess()" class="text-xs text-red-400 hover:text-red-500">ปิดระบบสตาฟ</button>
+      <div class="flex items-center gap-3">
+        <button id="darkModeBtn" onclick="toggleDarkMode()" title="สลับโหมดมืด/สว่าง" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 transition flex items-center justify-center text-sm">🌙</button>
+        <div id="loginSection">
+          <button id="loginBtn" onclick="toggleModal('loginModal')" class="text-sm text-gray-400 hover:text-orange-500 transition">สตาฟคุมเครื่อง</button>
+          <div id="adminPanel" class="hidden flex items-center gap-4">
+            <span id="adminName" class="text-xs bg-orange-50 text-orange-600 px-3 py-1 rounded-full border border-orange-100 font-medium"></span>
+            <button onclick="logoutProcess()" class="text-xs text-red-400 hover:text-red-500">ปิดระบบสตาฟ</button>
+          </div>
         </div>
       </div>
     </div>
@@ -226,6 +270,16 @@
         <h3 id="calDayDetailTitle" class="text-base font-bold text-gray-900 mb-3"></h3>
         <div id="calDayDetailBody" class="space-y-3 max-h-[300px] overflow-y-auto text-xs"></div>
         <button onclick="toggleModal('calDayDetailModal')" class="w-full mt-4 py-2 bg-gray-100 text-gray-500 text-xs rounded-xl">ปิด</button>
+      </div>
+    </div>
+
+    <!-- popup แสดงประวัติการเช็กชื่อรายบุคคล -->
+    <div id="historyModal" class="fixed inset-0 bg-black/10 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+      <div class="bg-white/95 backdrop-blur-md rounded-[24px] p-6 w-full max-w-md border border-white/20 shadow-xl">
+        <h3 id="historyModalTitle" class="text-base font-bold text-gray-900 mb-1"></h3>
+        <p id="historyModalSummary" class="text-xs mb-4"></p>
+        <div id="historyModalBody" class="space-y-2 max-h-[360px] overflow-y-auto"></div>
+        <button onclick="toggleModal('historyModal')" class="w-full mt-4 py-2 bg-gray-100 text-gray-500 text-xs rounded-xl">ปิด</button>
       </div>
     </div>
 
@@ -396,6 +450,20 @@
         }
       }
     };
+
+    // --- โหมดมืด/สว่าง ---
+    function toggleDarkMode() {
+      document.documentElement.classList.toggle('dark');
+      const isDark = document.documentElement.classList.contains('dark');
+      localStorage.setItem('colorTheme', isDark ? 'dark' : 'light');
+      document.getElementById('darkModeBtn').innerText = isDark ? '☀️' : '🌙';
+    }
+    // ตั้งไอคอนปุ่มให้ตรงกับสถานะปัจจุบัน (คลาส dark ถูกใส่ไว้แล้วตั้งแต่ก่อน body โหลด ถ้าเคยเลือกไว้)
+    document.addEventListener('DOMContentLoaded', () => {
+      if (document.documentElement.classList.contains('dark')) {
+        document.getElementById('darkModeBtn').innerText = '☀️';
+      }
+    });
 
     let loggedInUser = null;
     let loggedInRole = null;
@@ -1011,11 +1079,34 @@
     function viewIndividualHistory(studentId) {
       let student = cachedStudentsData.find(s => s.id === studentId);
       if(!student) return;
-      let historyText = student.history.length === 0 ? "ยังไม่มีประวัติการเช็กชื่อเข้าบ้านสี" : "";
-      student.history.forEach(h => {
-        historyText += `📅 วันที่: ${h.date} | เวลาสแกน: ${h.time} | Status: ${h.status}\n`;
-      });
-      alert(`[ประวัติการเข้าบ้านสีแสดของ: ${student.name} ม.4/${student.room}]\n\n` + historyText);
+
+      document.getElementById('historyModalTitle').innerText = `📖 ประวัติ: ${student.name} (${student.nickname}) ม.4/${student.room}`;
+      document.getElementById('historyModalSummary').innerHTML =
+        `<span class="text-green-500 font-bold">มา ${student.presentCount}</span> · ` +
+        `<span class="text-amber-500 font-bold">ลา ${student.leaveCount}</span> · ` +
+        `<span class="text-red-400 font-bold">ขาด ${student.absentCount}</span>`;
+
+      let body = "";
+      if (student.history.length === 0) {
+        body = `<p class="text-gray-400 text-center py-6">ยังไม่มีประวัติการเช็กชื่อเข้าบ้านสี</p>`;
+      } else {
+        // เรียงล่าสุดขึ้นก่อน
+        const sorted = [...student.history].reverse();
+        sorted.forEach(h => {
+          const isLeave = h.type === "แจ้งลาออนไลน์";
+          const badgeClass = isLeave ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-green-50 text-green-600 border-green-100";
+          body += `
+            <div class="flex items-start justify-between gap-3 p-3 bg-gray-50 rounded-xl">
+              <div>
+                <p class="font-semibold text-gray-800 text-xs">${h.date} <span class="text-gray-400 font-normal">${h.time !== '-' ? '· ' + h.time : ''}</span></p>
+                <p class="text-gray-500 text-[11px] mt-0.5">${h.status}</p>
+              </div>
+              <span class="shrink-0 text-[10px] px-2 py-1 rounded-full border ${badgeClass} font-medium whitespace-nowrap">${h.type}</span>
+            </div>`;
+        });
+      }
+      document.getElementById('historyModalBody').innerHTML = body;
+      toggleModal('historyModal');
     }
 
     // --- 7. การล็อกอินสตาฟ ---
