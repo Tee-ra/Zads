@@ -93,7 +93,6 @@
 <body class="antialiased">
 
   <!-- ตัวบอกสถานะ "กำลังโหลด" แบบรวมศูนย์ — ขึ้นทุกครั้งที่มีการติดต่อกับ Apps Script -->
-  <!-- บล็อกการคลิกซ้ำระหว่างรอ ป้องกันข้อมูลซ้ำจากการกดปุ่มหลายครั้ง -->
   <div id="globalLoadingOverlay" class="hidden fixed inset-0 z-[10000] bg-black/20 backdrop-blur-[2px] flex items-center justify-center">
     <div class="bg-white/95 rounded-2xl px-6 py-4 flex items-center gap-3 shadow-xl">
       <div class="loading-spinner"></div>
@@ -240,7 +239,6 @@
           </div>
         </div>
 
-        <!-- มุมมองรายการ (ตารางเดิม) -->
         <div id="calendarListView" class="overflow-y-auto max-h-[280px]">
           <table class="w-full text-xs text-left">
             <thead><tr class="bg-gray-50 text-gray-400 uppercase border-b border-gray-100"><th class="p-2.5 pl-4">วันที่กิจกรรม</th><th class="p-2.5">รายละเอียด/หัวข้อกิจกรรม</th><th class="p-2.5">คนที่ต้องเข้า</th><th class="p-2.5 text-center">จัดการ</th></tr></thead>
@@ -250,7 +248,6 @@
           </table>
         </div>
 
-        <!-- มุมมองตารางปฏิทิน (grid รายเดือน) -->
         <div id="calendarGridView" class="hidden">
           <div class="flex justify-between items-center mb-3">
             <button onclick="changeCalendarMonth(-1)" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition">‹</button>
@@ -267,7 +264,7 @@
 
     <div class="apple-card p-6 space-y-3">
       <div class="flex justify-between items-center flex-wrap gap-2">
-        <h3 class="text-base font-bold text-gray-800">🙋 ใครลาบ้าง </h3>
+        <h3 class="text-base font-bold text-gray-800">🙋 ใครลาบ้าง (ไม่ต้องเข้าไปดูในชีตแล้ว)</h3>
         <input type="text" id="leaveSearchInput" oninput="renderLeaveList()" placeholder="ค้นหาชื่อ/รหัส/ห้อง..." class="p-2 bg-gray-50 rounded-xl text-xs border-none focus:outline-none focus:ring-1 focus:ring-orange-500 w-48">
       </div>
       <div id="leave-list-body" class="space-y-3 max-h-[360px] overflow-y-auto">
@@ -276,7 +273,6 @@
     </div>
     </div>
 
-    <!-- popup แสดงรายละเอียดกิจกรรมของวันที่เลือกในมุมมองปฏิทิน -->
     <div id="calDayDetailModal" class="fixed inset-0 bg-black/10 backdrop-blur-sm hidden flex items-center justify-center z-50">
       <div class="bg-white/95 backdrop-blur-md rounded-[24px] p-6 w-full max-w-sm border border-white/20 shadow-xl">
         <h3 id="calDayDetailTitle" class="text-base font-bold text-gray-900 mb-3"></h3>
@@ -285,7 +281,6 @@
       </div>
     </div>
 
-    <!-- popup แสดงประวัติการเช็กชื่อรายบุคคล -->
     <div id="historyModal" class="fixed inset-0 bg-black/10 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
       <div class="bg-white/95 backdrop-blur-md rounded-[24px] p-6 w-full max-w-md border border-white/20 shadow-xl">
         <h3 id="historyModalTitle" class="text-base font-bold text-gray-900 mb-1"></h3>
@@ -401,14 +396,10 @@
   </div>
 
   <script>
-    // ⚠️ แก้ตรงนี้เป็นลิงก์ Web App /exec ของคุณเอง
-    // (Apps Script Editor > Deploy > Manage deployments)
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbypN_IW41VQNCz_1dChWFaFjBbguiRDrTOZFgvuw582jXBOG0LDywFjTEK3a7-OBCWC/exec";
+    // ⚠️ นำลิงก์ Web App (ที่ลงท้ายด้วย /exec) จาก Google Apps Script มาใส่ตรงนี้
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec";
 
-    // --- Shim: ทำให้ google.script.run.withSuccessHandler(cb).ฟังก์ชัน(args) ---
-    // --- ทำงานผ่าน fetch() ไปหา Apps Script (doPost) แทนของเดิม ---
-    // เขียนแบบนี้เพื่อให้โค้ดส่วนที่เหลือทั้งหมดในไฟล์นี้ไม่ต้องแก้อะไรเลย
-    // --- ตัวแสดงสถานะ "กำลังโหลด" แบบรวมศูนย์ (บล็อกการคลิกซ้ำระหว่างรอข้อมูล) ---
+    // ---ระบบ Bridge แปลง google.script.run ให้เรียกสื่อสารผ่าน fetch API ไปยัง Apps Script---
     let pendingRequestCount = 0;
     function showLoadingOverlay() {
       pendingRequestCount++;
@@ -425,7 +416,6 @@
       showLoadingOverlay();
       fetch(APPS_SCRIPT_URL, {
         method: "POST",
-        // ใช้ text/plain เพื่อเลี่ยง CORS preflight (Apps Script ไม่รองรับ OPTIONS request)
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({ fn: fnName, args: args })
       })
@@ -442,7 +432,7 @@
           hideLoadingOverlay();
           console.error("gasCall network error:", err);
           if (failFn) failFn(err.toString());
-          else triggerAlert("เชื่อมต่อไม่สำเร็จ ❌", "ตรวจสอบอินเทอร์เน็ต หรือ APPS_SCRIPT_URL ให้ถูกต้อง", "❌");
+          else triggerAlert("เชื่อมต่อไม่สำเร็จ ❌", "ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต หรือใส่ APPS_SCRIPT_URL ให้ถูกต้อง", "❌");
         });
     }
 
@@ -470,7 +460,7 @@
       localStorage.setItem('colorTheme', isDark ? 'dark' : 'light');
       document.getElementById('darkModeBtn').innerText = isDark ? '☀️' : '🌙';
     }
-    // ตั้งไอคอนปุ่มให้ตรงกับสถานะปัจจุบัน (คลาส dark ถูกใส่ไว้แล้วตั้งแต่ก่อน body โหลด ถ้าเคยเลือกไว้)
+    
     document.addEventListener('DOMContentLoaded', () => {
       if (document.documentElement.classList.contains('dark')) {
         document.getElementById('darkModeBtn').innerText = '☀️';
@@ -493,6 +483,8 @@
     };
 
     function switchTab(tab) {
+      const wasOnScannerTab = !document.getElementById('sectionScanner').classList.contains('hidden');
+
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.getElementById('sectionFinance').classList.add('hidden');
       document.getElementById('sectionScanner').classList.add('hidden');
@@ -505,12 +497,19 @@
       } else if(tab === 'scanner') {
         document.getElementById('tabScannerBtn').classList.add('active');
         document.getElementById('sectionScanner').classList.remove('hidden');
+        if (loggedInUser) {
+          requestAnimationFrame(() => startCamera());
+        }
       } else if(tab === 'leave') {
         document.getElementById('tabLeaveBtn').classList.add('active');
         document.getElementById('sectionLeave').classList.remove('hidden');
       } else {
         document.getElementById('tabDashboardBtn').classList.add('active');
         document.getElementById('sectionDashboard').classList.remove('hidden');
+      }
+
+      if (wasOnScannerTab && tab !== 'scanner') {
+        stopCamera();
       }
     }
 
@@ -580,7 +579,7 @@
     // --- 2. โหลดปฏิทินกิจกรรม ---
     let calendarEventsCache = [];
     let allStudentsCache = [];
-    let calGridDate = new Date(); // เดือน/ปีที่กำลังแสดงในมุมมองปฏิทิน
+    let calGridDate = new Date();
     const thaiMonths = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 
     function loadCalendar() {
@@ -604,7 +603,6 @@
       }).getCalendarData();
     }
 
-    // --- สลับมุมมอง รายการ / ปฏิทิน ---
     function setCalendarView(view) {
       const listBtn = document.getElementById('calViewListBtn');
       const gridBtn = document.getElementById('calViewGridBtn');
@@ -633,11 +631,10 @@
       renderCalendarGrid();
     }
 
-    // แปลง "dd/MM/yyyy" ที่ backend ส่งมา ให้เป็น key เทียบวันที่ได้ง่ายๆ
     function parseThaiDateKey(dateStr) {
       const parts = dateStr.split('/');
       if (parts.length !== 3) return null;
-      return `${parts[2]}-${parts[1]}-${parts[0]}`; // yyyy-MM-dd
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
     }
 
     function renderCalendarGrid() {
@@ -645,7 +642,6 @@
       const month = calGridDate.getMonth();
       document.getElementById('calGridMonthLabel').innerText = `${thaiMonths[month]} ${year + 543}`;
 
-      // จัดกลุ่มกิจกรรมตามวันที่ (key: yyyy-MM-dd)
       let eventsByDate = {};
       calendarEventsCache.forEach(ev => {
         const key = parseThaiDateKey(ev.date);
@@ -655,7 +651,7 @@
       });
 
       const firstDay = new Date(year, month, 1);
-      const startWeekday = firstDay.getDay(); // 0=อา
+      const startWeekday = firstDay.getDay();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const todayKey = (() => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; })();
 
@@ -693,7 +689,6 @@
       toggleModal('calDayDetailModal');
     }
 
-    // --- modal เพิ่มกิจกรรม + ตัวเลือกคนที่ต้องเข้า ---
     function openCalendarModal() {
       document.getElementById('cal-require-all').checked = true;
       document.getElementById('cal-roster-picker').classList.add('hidden');
@@ -776,18 +771,15 @@
       }).syncCalendarFromGoogle();
     }
 
-    // --- 3. ระบบกล้องถอดรหัส (เน้นแก้ปัญหา Sandbox iframe บล็อกสิทธิ์) ---
+    // --- 3. ระบบกล้องถอดรหัส ---
     function startCamera() {
       document.getElementById('lockNotice').classList.add('hidden');
       document.getElementById('scannerContainer').classList.remove('hidden');
 
-      // เช็กก่อนว่าเบราว์เซอร์/สภาพแวดล้อมนี้รองรับกล้องหรือไม่
-      // (มักเกิดปัญหานี้เวลาเปิดลิงก์ผ่าน In-App Browser ของ LINE/Facebook/Instagram
-      //  หรือเปิดผ่าน HTTP ธรรมดาที่ไม่ใช่ HTTPS)
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         triggerAlert(
           "อุปกรณ์นี้ไม่รองรับกล้อง 🔒",
-          "เบราว์เซอร์หรือแอปที่เปิดอยู่ไม่รองรับการเข้าถึงกล้อง (มักเจอเวลาเปิดลิงก์ผ่านแอป LINE/Facebook/Instagram)\n\n💡 กรุณากดจุดสามจุด/เมนู แล้วเลือก 'เปิดด้วยเบราว์เซอร์' (Chrome/Safari) แทนครับ",
+          "เบราว์เซอร์หรือแอปที่เปิดอยู่ไม่รองรับการเข้าถึงกล้อง\n\n💡 กรุณากดเลือก 'เปิดด้วยเบราว์เซอร์' (Chrome/Safari) แทนครับ",
           "❌"
         );
         return;
@@ -797,12 +789,8 @@
         html5QrcodeScanner = new Html5Qrcode("reader");
       }
 
-      // ขอสิทธิ์กล้องแบบตรงๆ ก่อน 1 ครั้ง เพื่อบังคับให้เบราว์เซอร์เด้ง popup ขอสิทธิ์
-      // ให้ชัดเจน (บางเบราว์เซอร์จะไม่เด้ง permission prompt ถ้าเรียก getCameras() ตรงๆ
-      // โดยยังไม่เคยมีการขอ getUserMedia มาก่อนเลย)
       navigator.mediaDevices.getUserMedia({ video: true })
         .then(stream => {
-          // ปิด stream ทดสอบทันที ไม่ต้องใช้ต่อ (แค่ขอสิทธิ์เฉยๆ)
           stream.getTracks().forEach(track => track.stop());
           detectCamerasAndStart();
         })
@@ -813,7 +801,6 @@
     }
 
     function detectCamerasAndStart() {
-      // ตรวจสอบและค้นหากล้องของอุปกรณ์ผ่านไลบรารีโดยตรง
       Html5Qrcode.getCameras().then(devices => {
         if (devices && devices.length > 0) {
           availableCameras = devices;
@@ -828,7 +815,6 @@
           });
           document.getElementById('cameraSelectContainer').classList.remove('hidden');
           
-          // ค้นหากล้องหลัง (Back/Environment) เพื่อความสะดวกในการแสกนหน้าซุ้ม
           let targetCameraId = devices[0].id;
           for(let d of devices) {
             const labelLower = d.label.toLowerCase();
@@ -842,12 +828,10 @@
 
           executeScannerStream(targetCameraId);
         } else {
-          // หากยังไม่เจอตัวอุปกรณ์ ให้ลองรันด้วยฟังก์ชันอัตโนมัติของตัวสแกนทันที
           executeScannerStream({ facingMode: "environment" });
         }
       }).catch(err => {
         console.warn("Camera fallback applied:", err);
-        // Fallback: ถ้า getCameras ถูกสกัดกั้น ให้สั่งเริ่มทำงานผ่าน FacingMode ทันที
         executeScannerStream({ facingMode: "environment" });
       });
     }
@@ -858,7 +842,8 @@
         qrbox: function(viewfinderWidth, viewfinderHeight) {
           const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
           const boxWidth = Math.floor(minEdge * 0.7);
-          return { width: boxWidth, height: boxWidth };
+          const safeSize = Math.max(boxWidth, 50);
+          return { width: safeSize, height: safeSize };
         },
         aspectRatio: 1.0
       };
@@ -883,7 +868,6 @@
     }
 
     // --- โหมดเต็มจอกันโกง (Kiosk Mode) ---
-    // แสดงเฉพาะกล้อง ซ่อนเมนู/แผงพิมพ์รหัสด้วยมือ ป้องกันนักเรียนพิมพ์เช็กชื่อแทนเพื่อน
     function enterKioskMode() {
       if (!loggedInUser) {
         triggerAlert("ต้องล็อกอินก่อน 🔒", "กรุณาล็อกอินสตาฟและเปิดกล้องให้ทำงานก่อนเข้าโหมดเต็มจอครับ", "🔒");
@@ -894,12 +878,9 @@
       document.getElementById('enterKioskBtn').classList.add('hidden');
       document.getElementById('exitKioskBtn').classList.remove('hidden');
 
-      // ลองขอ fullscreen จริงของเบราว์เซอร์เพิ่มเติม (บาง browser เช่น iOS Safari จะไม่รองรับ แต่ไม่เป็นไร
-      // เพราะโหมดเต็มจอแบบ CSS ด้านบนทำงานอยู่แล้วโดยไม่ต้องพึ่งฟีเจอร์นี้)
       if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen().catch(() => {});
       }
-      // กันการกดปุ่มย้อนกลับของมือถือเพื่อออกจากโหมด
       history.pushState(null, '', location.href);
     }
 
@@ -936,7 +917,6 @@
       }).checkLogin(u, p);
     }
 
-    // สลับกล้องหน้า/หลัง (หรือวนไปทีละตัวถ้ามีมากกว่า 2 กล้อง)
     function flipCamera() {
       if (!availableCameras || availableCameras.length < 2) {
         triggerAlert("มีกล้องเดียว 📷", "อุปกรณ์นี้ตรวจพบกล้องแค่ตัวเดียว ไม่สามารถสลับได้ครับ", "📷");
@@ -968,7 +948,6 @@
 
     let _scanLoopConfirmed = false;
     function onScanError(err) {
-      // ทำงานเบื้องหลังเงียบๆ เพื่อลดการประมวลผลซ้ำซ้อน (error นี้ปกติมากเพราะเรียกทุกเฟรมที่ยังไม่เจอ QR)
       if (!_scanLoopConfirmed) {
         _scanLoopConfirmed = true;
         console.log("✅ ตัวสแกน QR เริ่มทำงานแล้ว (decode loop กำลังรันอยู่)");
@@ -979,17 +958,17 @@
       console.error(e);
       const name = (e && e.name) || "";
       let title = "เปิดกล้องไม่สำเร็จ 🔒";
-      let msg = "เบราว์เซอร์บล็อกการทำงานจากกรอบระบบภายใน\n\n💡 แนะนำให้เปิดใช้งานลิงก์นี้บน Google Chrome หรือ Safari ภายนอกโดยตรงครับ";
+      let msg = "แนะนำให้เปิดใช้งานลิงก์นี้บน Google Chrome หรือ Safari ภายนอกโดยตรงครับ";
 
       if (name === "NotAllowedError" || name === "PermissionDeniedError") {
         title = "ไม่ได้รับอนุญาตให้ใช้กล้อง 🚫";
         msg = "คุณกด 'ปฏิเสธ' สิทธิ์กล้อง หรือเบราว์เซอร์เคยบล็อกไว้\n\n💡 กรุณากดไอคอนกุญแจ/ตัวล็อกที่แถบ URL แล้วเปิดสิทธิ์กล้องใหม่ จากนั้นรีเฟรชหน้าเว็บครับ";
       } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
         title = "ไม่พบกล้องในอุปกรณ์นี้ 📷";
-        msg = "อุปกรณ์นี้ไม่มีกล้อง หรือกล้องถูกปิดใช้งานในระบบ\n\n💡 ลองเปิดด้วยมือถือหรือคอมพิวเตอร์ที่มีกล้องแทนครับ";
+        msg = "อุปกรณ์นี้ไม่มีกล้อง หรือกล้องถูกปิดใช้งานในระบบ";
       } else if (name === "NotReadableError" || name === "TrackStartError") {
         title = "กล้องถูกใช้งานอยู่ ⚠️";
-        msg = "กล้องอาจถูกเปิดใช้งานโดยแอปอื่นอยู่ในขณะนี้\n\n💡 ลองปิดแอปอื่นที่อาจใช้กล้องอยู่ แล้วลองใหม่อีกครั้งครับ";
+        msg = "กล้องอาจถูกเปิดใช้งานโดยแอปอื่นอยู่ในขณะนี้";
       } else if (location.protocol !== "https:") {
         title = "ต้องใช้ HTTPS เท่านั้น 🔒";
         msg = "เบราว์เซอร์อนุญาตให้ใช้กล้องเฉพาะบนลิงก์ที่ปลอดภัย (https://) เท่านั้น";
@@ -1065,7 +1044,6 @@
         );
       }
 
-      // เรียงตามวันที่ลา ล่าสุดขึ้นก่อน แล้วจัดกลุ่มตามวันที่
       const parseDMY = (d) => { const p = (d || "").split('/'); return p.length === 3 ? new Date(p[2], p[1]-1, p[0]) : new Date(0); };
       const sorted = [...filtered].sort((a, b) => parseDMY(b.leaveDate) - parseDMY(a.leaveDate));
 
@@ -1158,7 +1136,6 @@
       if (student.history.length === 0) {
         body = `<p class="text-gray-400 text-center py-6">ยังไม่มีประวัติการเช็กชื่อเข้าบ้านสี</p>`;
       } else {
-        // เรียงล่าสุดขึ้นก่อน
         const sorted = [...student.history].reverse();
         sorted.forEach(h => {
           const isLeave = h.type === "แจ้งลาออนไลน์";
@@ -1191,14 +1168,15 @@
           document.getElementById('staffManualRow').classList.remove('opacity-40', 'pointer-events-none');
           document.getElementById('staffManualNotice').classList.add('hidden');
 
-          // เปิดปุ่มจัดการข้อมูล (เพิ่ม/ลบ บัญชี, ปฏิทิน) เฉพาะ role = admin เท่านั้น
           if (loggedInRole === 'admin') {
             document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
           }
           loadFinance();
           loadCalendar();
 
-          startCamera(); 
+          if (!document.getElementById('sectionScanner').classList.contains('hidden')) {
+            startCamera();
+          }
           triggerAlert("ยินดีต้อนรับสตาฟสีแสด", "เปิดระบบสแกนเครื่องกลางและแผงควบคุมสตาฟแล้วครับ", "🍊");
         } else { triggerAlert("ข้อผิดพลาด", res.message, "❌"); }
       }).checkLogin(u, p);
@@ -1213,7 +1191,6 @@
       document.getElementById('staffManualRow').classList.add('opacity-40', 'pointer-events-none');
       document.getElementById('staffManualNotice').classList.remove('hidden');
 
-      // ปิดโหมดเต็มจอด้วย (ถ้าเปิดค้างอยู่) เพื่อความปลอดภัย
       document.body.classList.remove('kiosk-mode');
       document.getElementById('scannerCard').classList.remove('kiosk-mode-card');
       document.getElementById('enterKioskBtn').classList.remove('hidden');
