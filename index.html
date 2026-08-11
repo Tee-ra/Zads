@@ -225,6 +225,16 @@
         </div>
         <button onclick="sendLeaveForm()" class="w-full btn-apple-orange py-2.5 rounded-xl text-xs font-medium">ส่งใบลาออนไลน์</button>
       </div>
+
+      <div class="apple-card p-6 md:col-span-3 space-y-3">
+        <div class="flex justify-between items-center flex-wrap gap-2">
+          <h3 class="text-base font-bold text-gray-800">🙋 ใครลาบ้าง (ไม่ต้องเข้าไปดูในชีตแล้ว)</h3>
+          <input type="text" id="leaveSearchInput" oninput="renderLeaveList()" placeholder="ค้นหาชื่อ/รหัส/ห้อง..." class="p-2 bg-gray-50 rounded-xl text-xs border-none focus:outline-none focus:ring-1 focus:ring-orange-500 w-48">
+        </div>
+        <div id="leave-list-body" class="space-y-3 max-h-[360px] overflow-y-auto">
+          <p class="text-gray-400 text-center py-6 text-xs">กำลังโหลดรายชื่อคนลา...</p>
+        </div>
+      </div>
       
       <div class="apple-card p-6 md:col-span-2 space-y-4">
         <div class="flex justify-between items-center flex-wrap gap-2">
@@ -477,6 +487,7 @@
       loadFinance();
       loadCalendar();
       refreshDashboard();
+      loadLeaveList();
     };
 
     function switchTab(tab) {
@@ -841,18 +852,13 @@
 
     function executeScannerStream(cameraConfig) {
       const config = { 
-        fps: 15, 
+        fps: 10, 
         qrbox: function(viewfinderWidth, viewfinderHeight) {
           const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-          const boxWidth = Math.floor(minEdge * 0.65);
+          const boxWidth = Math.floor(minEdge * 0.7);
           return { width: boxWidth, height: boxWidth };
         },
-        aspectRatio: 1.0,
-        // บังคับให้กล้องโฟกัสอัตโนมัติแบบต่อเนื่อง ช่วยลดปัญหาภาพเบลอตอนสแกนใกล้ๆ
-        // (เบราว์เซอร์ที่ไม่รองรับจะข้าม constraint นี้ไปเฉยๆ ไม่ error)
-        videoConstraints: {
-          advanced: [{ focusMode: "continuous" }]
-        }
+        aspectRatio: 1.0
       };
 
       if (html5QrcodeScanner.isScanning) {
@@ -958,7 +964,14 @@
       }
     }
 
-    function onScanError(err) { /* ทำงานเบื้องหลังเงียบๆ เพื่อลดการประมวลผลซ้ำซ้อน */ }
+    let _scanLoopConfirmed = false;
+    function onScanError(err) {
+      // ทำงานเบื้องหลังเงียบๆ เพื่อลดการประมวลผลซ้ำซ้อน (error นี้ปกติมากเพราะเรียกทุกเฟรมที่ยังไม่เจอ QR)
+      if (!_scanLoopConfirmed) {
+        _scanLoopConfirmed = true;
+        console.log("✅ ตัวสแกน QR เริ่มทำงานแล้ว (decode loop กำลังรันอยู่)");
+      }
+    }
 
     function onCameraLaunchError(e) {
       console.error(e);
@@ -1024,8 +1037,61 @@
           triggerAlert("ยื่นใบลาสำเร็จ ✅", `ระบบบันทึกการลาของ ${res.name} เรียบร้อยแล้ว`, "📝");
           document.getElementById('leave-id').value = ""; document.getElementById('leave-reason').value = "";
           refreshDashboard();
+          loadLeaveList();
         } else { triggerAlert("ล้มเหลว", res, "❌"); }
       }).submitLeave(id, date, reason);
+    }
+
+    // --- 5.1 หน้ารายชื่อคนลา (ใครลาบ้าง) ---
+    let leaveDataCache = [];
+    function loadLeaveList() {
+      google.script.run.withSuccessHandler(list => {
+        leaveDataCache = list;
+        renderLeaveList();
+      }).getLeaveData();
+    }
+
+    function renderLeaveList() {
+      const q = (document.getElementById('leaveSearchInput').value || "").trim().toLowerCase();
+      let filtered = leaveDataCache;
+      if (q) {
+        filtered = leaveDataCache.filter(l =>
+          (l.name || "").toLowerCase().includes(q) ||
+          (l.nickname || "").toLowerCase().includes(q) ||
+          (l.studentId || "").toLowerCase().includes(q) ||
+          (l.room || "").toString().toLowerCase().includes(q)
+        );
+      }
+
+      // เรียงตามวันที่ลา ล่าสุดขึ้นก่อน แล้วจัดกลุ่มตามวันที่
+      const parseDMY = (d) => { const p = (d || "").split('/'); return p.length === 3 ? new Date(p[2], p[1]-1, p[0]) : new Date(0); };
+      const sorted = [...filtered].sort((a, b) => parseDMY(b.leaveDate) - parseDMY(a.leaveDate));
+
+      let grouped = {};
+      sorted.forEach(l => {
+        if (!grouped[l.leaveDate]) grouped[l.leaveDate] = [];
+        grouped[l.leaveDate].push(l);
+      });
+
+      let h = "";
+      Object.keys(grouped).forEach(date => {
+        const items = grouped[date];
+        h += `<div>
+                <p class="text-[11px] font-bold text-orange-600 mb-1.5">📅 ${date} <span class="text-gray-400 font-normal">(ลา ${items.length} คน)</span></p>
+                <div class="space-y-1.5">`;
+        items.forEach(l => {
+          h += `<div class="flex items-start justify-between gap-3 p-2.5 bg-gray-50 rounded-xl text-xs">
+                  <div>
+                    <p class="font-semibold text-gray-800">${l.name} <span class="text-gray-400 font-normal">(${l.nickname || '-'}) ม.4/${l.room}</span></p>
+                    <p class="text-gray-500 text-[11px] mt-0.5">เหตุผล: ${l.reason}</p>
+                  </div>
+                  <span class="shrink-0 text-[10px] text-gray-400 whitespace-nowrap">แจ้งเมื่อ ${l.submittedAt}</span>
+                </div>`;
+        });
+        h += `</div></div>`;
+      });
+
+      document.getElementById('leave-list-body').innerHTML = h || "<p class='text-gray-400 text-center py-6 text-xs'>ยังไม่มีใครแจ้งลาเลยครับ</p>";
     }
 
     // --- 6. แดชบอร์ดสถิติ ---
