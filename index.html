@@ -6,12 +6,10 @@
     if (localStorage.getItem('colorTheme') === 'dark') document.documentElement.classList.add('dark');
   </script>
   
-  <!-- เพิ่ม preconnect เพื่อให้โหลดฟอนต์เร็วขึ้น -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
   
-  <!-- เพิ่ม defer เพื่อไม่ให้บล็อกการแสดงผลหน้าเว็บเริ่มต้น -->
   <script src="https://cdn.tailwindcss.com" defer></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
   
@@ -479,12 +477,9 @@
     let currentCameraId = null;
     let availableCameras = [];
 
-    // --- จุดที่ปรับปรุงความเร็วและลดคอขวด ---
     window.onload = () => {
-      // โหลดเฉพาะแท็บแรกสุด (รายรับรายจ่าย) ทันที
       loadFinance();
       
-      // ทยอยโหลดข้อมูลแท็บอื่นเบื้องหลัง เพื่อลดการทำงานหนักพร้อมกันของ Apps Script
       setTimeout(() => {
         loadCalendar();
         loadLeaveList();
@@ -558,7 +553,6 @@
             receiptBtn = `<span class="text-gray-300 italic">ไม่มีหลักฐาน</span>`;
           }
 
-          // จัดการเงื่อนไขปุ่มลบ (เช็คจาก loggedInRole ที่คุณเขียนไว้ให้แสดงเฉพาะ admin)
           let manageBtn = loggedInRole === 'admin'
             ? `<button onclick="deleteFinanceRecord(${item.rowId})" class="text-red-400 hover:text-red-500 text-[11px] font-medium">🗑 ลบ</button>`
             : `<span class="text-gray-300">-</span>`;
@@ -1165,7 +1159,9 @@
       let p = document.getElementById('password').value;
       google.script.run.withSuccessHandler(res => {
         if(res.success) {
-          loggedInUser = u; loggedInRole = res.role; toggleModal('loginModal');
+          loggedInUser = u; 
+          loggedInRole = res.role; // 👈 จุดที่แก้ไข: กำหนดค่าสิทธิ์ role ให้ตัวแปรทำงานถูกต้อง
+          toggleModal('loginModal');
           document.getElementById('loginBtn').classList.add('hidden');
           document.getElementById('adminPanel').classList.remove('hidden');
           document.getElementById('adminName').innerText = "ผู้คุมซุ้ม: " + u + (loggedInRole === 'admin' ? " (ผู้ดูแล)" : "");
