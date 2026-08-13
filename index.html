@@ -54,7 +54,6 @@
 
     /* ==========================================
        โหมดมืด (Dark Mode)
-       ครอบคลุม class ของ Tailwind ที่ใช้อยู่ในเว็บทั้งหมด
        ========================================== */
     html.dark body { background-color: #0d0d0f; color: #e5e5e7; }
     html.dark .apple-nav { background: rgba(20,20,22,0.85) !important; border-bottom-color: rgba(255,255,255,0.06) !important; }
@@ -92,8 +91,6 @@
 </head>
 <body class="antialiased">
 
-  <!-- ตัวบอกสถานะ "กำลังโหลด" แบบรวมศูนย์ — ขึ้นทุกครั้งที่มีการติดต่อกับ Apps Script -->
-  <!-- บล็อกการคลิกซ้ำระหว่างรอ ป้องกันข้อมูลซ้ำจากการกดปุ่มหลายครั้ง -->
   <div id="globalLoadingOverlay" class="hidden fixed inset-0 z-[10000] bg-black/20 backdrop-blur-[2px] flex items-center justify-center">
     <div class="bg-white/95 rounded-2xl px-6 py-4 flex items-center gap-3 shadow-xl">
       <div class="loading-spinner"></div>
@@ -203,7 +200,7 @@
               <option value="ขาดซ้อม ❌">ระบุว่า: ขาดซ้อม ❌</option>
               <option value="เข้างาน ☀️">เพิ่มย้อนหลัง: มาซ้อม ☀️</option>
             </select>
-            <button onclick="submitManualAttendance(event)" class="btn-apple-orange rounded-xl text-xs font-medium py-2">บันทึกข้อมูล</button>
+            <button onclick="submitManualAttendance()" class="btn-apple-orange rounded-xl text-xs font-medium py-2">บันทึกข้อมูล</button>
           </div>
           <p id="staffManualNotice" class="text-[11px] text-red-400 font-light">⚠️ ฟังก์ชันบันทึกข้อมูลเพิ่มเติมเฉพาะสตาฟที่ล็อกอินระบบแล้วเท่านั้น</p>
         </div>
@@ -211,72 +208,69 @@
     </div>
 
     <div id="sectionLeave" class="space-y-6 hidden">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="apple-card p-6 md:col-span-1 space-y-4">
-        <h3 class="text-base font-bold text-gray-800">📝 ฟอร์มแจ้งลาเข้าบ้านสีแสด</h3>
-        <p class="text-[11px] text-gray-400">สมาชิก ม.4 และสตาฟ สามารถยื่นใบลาล่วงหน้าออนไลน์ตรงนี้ได้เลยโดยไม่ต้องล็อกอิน</p>
-        <div>
-          <input type="text" id="leave-id" placeholder="รหัสนักเรียน 5 หลัก" class="w-full p-3 bg-gray-50 rounded-xl text-xs border-none focus:outline-none focus:ring-1 focus:ring-orange-500">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="apple-card p-6 md:col-span-1 space-y-4">
+          <h3 class="text-base font-bold text-gray-800">📝 ฟอร์มแจ้งลาเข้าบ้านสีแสด</h3>
+          <p class="text-[11px] text-gray-400">สมาชิก ม.4 และสตาฟ สามารถยื่นใบลาล่วงหน้าออนไลน์ตรงนี้ได้เลยโดยไม่ต้องล็อกอิน</p>
+          <div>
+            <input type="text" id="leave-id" placeholder="รหัสนักเรียน 5 หลัก" class="w-full p-3 bg-gray-50 rounded-xl text-xs border-none focus:outline-none focus:ring-1 focus:ring-orange-500">
+          </div>
+          <div>
+            <input type="date" id="leave-date" class="w-full p-3 bg-gray-50 rounded-xl text-xs border-none focus:outline-none">
+          </div>
+          <div>
+            <textarea id="leave-reason" placeholder="ระบุเหตุผลการลา (เช่น ติดธุระครอบครัว, ป่วยมีไข้)" rows="3" class="w-full p-3 bg-gray-50 rounded-xl text-xs border-none focus:outline-none"></textarea>
+          </div>
+          <button onclick="sendLeaveForm()" class="w-full btn-apple-orange py-2.5 rounded-xl text-xs font-medium">ส่งใบลาออนไลน์</button>
         </div>
-        <div>
-          <input type="date" id="leave-date" class="w-full p-3 bg-gray-50 rounded-xl text-xs border-none focus:outline-none">
-        </div>
-        <div>
-          <textarea id="leave-reason" placeholder="ระบุเหตุผลการลา (เช่น ติดธุระครอบครัว, ป่วยมีไข้)" rows="3" class="w-full p-3 bg-gray-50 rounded-xl text-xs border-none focus:outline-none"></textarea>
-        </div>
-        <button onclick="sendLeaveForm(event)" class="w-full btn-apple-orange py-2.5 rounded-xl text-xs font-medium">ส่งใบลาออนไลน์</button>
-      </div>
 
-      <div class="apple-card p-6 md:col-span-2 space-y-4">
-        <div class="flex justify-between items-center flex-wrap gap-2">
-          <h3 class="text-base font-bold text-gray-800">📅 ตารางปฏิทินและวันซ้อมสีแสด</h3>
-          <div class="flex items-center gap-2">
-            <div class="flex bg-gray-100 rounded-full p-0.5 text-[11px] font-medium">
-              <button id="calViewListBtn" onclick="setCalendarView('list')" class="px-3 py-1 rounded-full bg-white shadow-sm text-gray-700">📋 รายการ</button>
-              <button id="calViewGridBtn" onclick="setCalendarView('grid')" class="px-3 py-1 rounded-full text-gray-400">🗓 ปฏิทิน</button>
+        <div class="apple-card p-6 md:col-span-2 space-y-4">
+          <div class="flex justify-between items-center flex-wrap gap-2">
+            <h3 class="text-base font-bold text-gray-800">📅 ตารางปฏิทินและวันซ้อมสีแสด</h3>
+            <div class="flex items-center gap-2">
+              <div class="flex bg-gray-100 rounded-full p-0.5 text-[11px] font-medium">
+                <button id="calViewListBtn" onclick="setCalendarView('list')" class="px-3 py-1 rounded-full bg-white shadow-sm text-gray-700">📋 รายการ</button>
+                <button id="calViewGridBtn" onclick="setCalendarView('grid')" class="px-3 py-1 rounded-full text-gray-400">🗓 ปฏิทิน</button>
+              </div>
+              <button id="calendarAddBtn" onclick="openCalendarModal()" class="admin-only hidden btn-apple-orange px-4 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap">+ เพิ่มกิจกรรม</button>
+              <button id="calendarSyncBtn" onclick="syncCalendarNow()" class="admin-only hidden bg-gray-100 text-gray-500 px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap">🔄 ซิงก์</button>
             </div>
-            <button id="calendarAddBtn" onclick="openCalendarModal()" class="admin-only hidden btn-apple-orange px-4 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap">+ เพิ่มกิจกรรม</button>
-            <button id="calendarSyncBtn" onclick="syncCalendarNow()" class="admin-only hidden bg-gray-100 text-gray-500 px-3 py-1.5 rounded-full text-[11px] font-medium whitespace-nowrap">🔄 ซิงก์</button>
+          </div>
+
+          <div id="calendarListView" class="overflow-y-auto max-h-[280px]">
+            <table class="w-full text-xs text-left">
+              <thead><tr class="bg-gray-50 text-gray-400 uppercase border-b border-gray-100"><th class="p-2.5 pl-4">วันที่กิจกรรม</th><th class="p-2.5">รายละเอียด/หัวข้อกิจกรรม</th><th class="p-2.5">คนที่ต้องเข้า</th><th class="p-2.5 text-center">จัดการ</th></tr></thead>
+              <tbody id="calendar-body" class="divide-y divide-gray-50">
+                <tr><td colspan="4" class="p-4 text-center text-gray-400">กำลังดึงปฏิทินกิจกรรม...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="calendarGridView" class="hidden">
+            <div class="flex justify-between items-center mb-3">
+              <button onclick="changeCalendarMonth(-1)" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition">‹</button>
+              <span id="calGridMonthLabel" class="text-sm font-semibold text-gray-700"></span>
+              <button onclick="changeCalendarMonth(1)" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition">›</button>
+            </div>
+            <div class="grid grid-cols-7 gap-1 text-center text-[10px] text-gray-400 mb-1">
+              <div>อา</div><div>จ</div><div>อ</div><div>พ</div><div>พฤ</div><div>ศ</div><div>ส</div>
+            </div>
+            <div id="calGridCells" class="grid grid-cols-7 gap-1"></div>
           </div>
         </div>
+      </div>
 
-        <!-- มุมมองรายการ (ตารางเดิม) -->
-        <div id="calendarListView" class="overflow-y-auto max-h-[280px]">
-          <table class="w-full text-xs text-left">
-            <thead><tr class="bg-gray-50 text-gray-400 uppercase border-b border-gray-100"><th class="p-2.5 pl-4">วันที่กิจกรรม</th><th class="p-2.5">รายละเอียด/หัวข้อกิจกรรม</th><th class="p-2.5">คนที่ต้องเข้า</th><th class="p-2.5 text-center">จัดการ</th></tr></thead>
-            <tbody id="calendar-body" class="divide-y divide-gray-50">
-              <tr><td colspan="4" class="p-4 text-center text-gray-400">กำลังดึงปฏิทินกิจกรรม...</td></tr>
-            </tbody>
-          </table>
+      <div class="apple-card p-6 space-y-3">
+        <div class="flex justify-between items-center flex-wrap gap-2">
+          <h3 class="text-base font-bold text-gray-800">🙋 ใครลาบ้าง</h3>
+          <input type="text" id="leaveSearchInput" oninput="renderLeaveList()" placeholder="ค้นหาชื่อ/รหัส/ห้อง..." class="p-2 bg-gray-50 rounded-xl text-xs border-none focus:outline-none focus:ring-1 focus:ring-orange-500 w-48">
         </div>
-
-        <!-- มุมมองตารางปฏิทิน (grid รายเดือน) -->
-        <div id="calendarGridView" class="hidden">
-          <div class="flex justify-between items-center mb-3">
-            <button onclick="changeCalendarMonth(-1)" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition">‹</button>
-            <span id="calGridMonthLabel" class="text-sm font-semibold text-gray-700"></span>
-            <button onclick="changeCalendarMonth(1)" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition">›</button>
-          </div>
-          <div class="grid grid-cols-7 gap-1 text-center text-[10px] text-gray-400 mb-1">
-            <div>อา</div><div>จ</div><div>อ</div><div>พ</div><div>พฤ</div><div>ศ</div><div>ส</div>
-          </div>
-          <div id="calGridCells" class="grid grid-cols-7 gap-1"></div>
+        <div id="leave-list-body" class="space-y-3 max-h-[360px] overflow-y-auto">
+          <p class="text-gray-400 text-center py-6 text-xs">กำลังโหลดรายชื่อคนลา...</p>
         </div>
       </div>
     </div>
 
-    <div class="apple-card p-6 space-y-3">
-      <div class="flex justify-between items-center flex-wrap gap-2">
-        <h3 class="text-base font-bold text-gray-800">🙋 ใครลาบ้าง (ไม่ต้องเข้าไปดูในชีตแล้ว)</h3>
-        <input type="text" id="leaveSearchInput" oninput="renderLeaveList()" placeholder="ค้นหาชื่อ/รหัส/ห้อง..." class="p-2 bg-gray-50 rounded-xl text-xs border-none focus:outline-none focus:ring-1 focus:ring-orange-500 w-48">
-      </div>
-      <div id="leave-list-body" class="space-y-3 max-h-[360px] overflow-y-auto">
-        <p class="text-gray-400 text-center py-6 text-xs">กำลังโหลดรายชื่อคนลา...</p>
-      </div>
-    </div>
-    </div>
-
-    <!-- popup แสดงรายละเอียดกิจกรรมของวันที่เลือกในมุมมองปฏิทิน -->
     <div id="calDayDetailModal" class="fixed inset-0 bg-black/10 backdrop-blur-sm hidden flex items-center justify-center z-50">
       <div class="bg-white/95 backdrop-blur-md rounded-[24px] p-6 w-full max-w-sm border border-white/20 shadow-xl">
         <h3 id="calDayDetailTitle" class="text-base font-bold text-gray-900 mb-3"></h3>
@@ -285,7 +279,6 @@
       </div>
     </div>
 
-    <!-- popup แสดงประวัติการเช็กชื่อรายบุคคล -->
     <div id="historyModal" class="fixed inset-0 bg-black/10 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
       <div class="bg-white/95 backdrop-blur-md rounded-[24px] p-6 w-full max-w-md border border-white/20 shadow-xl">
         <h3 id="historyModalTitle" class="text-base font-bold text-gray-900 mb-1"></h3>
@@ -343,7 +336,7 @@
       <input type="password" id="password" placeholder="รหัสผ่าน" class="w-full mb-4 p-3 bg-gray-100 rounded-xl text-xs focus:outline-none">
       <div class="flex gap-2">
         <button onclick="toggleModal('loginModal')" class="w-1/2 py-2 bg-gray-100 text-gray-400 text-xs rounded-xl">ยกเลิก</button>
-        <button id="submitLoginBtn" onclick="loginProcess(event)" class="w-1/2 py-2 btn-apple-orange text-xs rounded-xl">เข้าสู่ระบบ</button>
+        <button id="submitLoginBtn" onclick="loginProcess()" class="w-1/2 py-2 btn-apple-orange text-xs rounded-xl">เข้าสู่ระบบ</button>
       </div>
     </div>
   </div>
@@ -357,7 +350,7 @@
       <input type="file" id="rec-file" accept="image/*" class="w-full mb-4 p-2 bg-gray-100 rounded-xl text-[10px]">
       <div class="flex gap-2">
         <button onclick="toggleModal('recordModal')" class="w-1/2 py-2 bg-gray-100 text-gray-400 text-xs rounded-xl">ปิด</button>
-        <button id="submitRecordBtn" onclick="submitRecord(event)" class="w-1/2 py-2 btn-apple-orange text-xs rounded-xl">บันทึกข้อมูล</button>
+        <button id="submitRecordBtn" onclick="submitRecord()" class="w-1/2 py-2 btn-apple-orange text-xs rounded-xl">บันทึกข้อมูล</button>
       </div>
     </div>
   </div>
@@ -382,7 +375,7 @@
 
       <div class="flex gap-2">
         <button onclick="toggleModal('calendarModal')" class="w-1/2 py-2 bg-gray-100 text-gray-400 text-xs rounded-xl">ยกเลิก</button>
-        <button onclick="submitCalendarEvent(event)" class="w-1/2 py-2 btn-apple-orange text-xs rounded-xl">บันทึก</button>
+        <button onclick="submitCalendarEvent()" class="w-1/2 py-2 btn-apple-orange text-xs rounded-xl">บันทึก</button>
       </div>
     </div>
   </div>
@@ -400,15 +393,16 @@
     </div>
   </div>
 
+  <!-- JavaScript แบบปรับปรุงประสิทธิภาพและความเสถียรสูงสุด -->
   <script>
-    // ⚠️ แก้ตรงนี้เป็นลิงก์ Web App /exec ของคุณเอง
-    // (Apps Script Editor > Deploy > Manage deployments)
+    // 🔴 วาง URL ที่ได้จาก Apps Script Web App ของคุณตรงนี้
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbypN_IW41VQNCz_1dChWFaFjBbguiRDrTOZFgvuw582jXBOG0LDywFjTEK3a7-OBCWC/exec";
 
-    // --- Shim: ทำให้ google.script.run.withSuccessHandler(cb).ฟังก์ชัน(args) ---
-    // --- ทำงานผ่าน fetch() ไปหา Apps Script (doPost) แทนของเดิม ---
-    // เขียนแบบนี้เพื่อให้โค้ดส่วนที่เหลือทั้งหมดในไฟล์นี้ไม่ต้องแก้อะไรเลย
-    // --- ตัวแสดงสถานะ "กำลังโหลด" แบบรวมศูนย์ (บล็อกการคลิกซ้ำระหว่างรอข้อมูล) ---
+    // ==========================================
+    // 🚀 PERFORMANCE & STABILITY OPTIMIZATIONS
+    // ==========================================
+    
+    // 1. ระบบจัดการ Overlay โหลดแบบ Thread-safe
     let pendingRequestCount = 0;
     function showLoadingOverlay() {
       pendingRequestCount++;
@@ -421,80 +415,54 @@
       }
     }
 
-    // สร้างรหัสประจำ "การกด 1 ครั้ง" ไว้แนบไปกับคำขอ เพื่อให้ backend รู้ว่าคำขอนี้เคยรับไปแล้วหรือยัง
-    // (ป้องกันข้อมูลซ้ำเวลาเน็ตช้าแล้วเว็บ retry เอง หรือคนกดปุ่มซ้ำ)
-    function makeReqId() {
-      return 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
-    }
+    // 2. Caching Layer เพื่อลดการดึงข้อมูลซ้ำซ้อน
+    const dataCache = {
+      finance: null,
+      calendar: null,
+      leave: null,
+      dashboard: null,
+      students: null
+    };
 
-    // ล็อก/ปลดล็อกปุ่มที่กดจริง ๆ ไม่ใช่แค่ overlay ลอย ๆ ทับหน้าจอ
-    // กันคนกดซ้ำตอนเน็ตช้า และให้ปุ่มมีสถานะ "กำลังบันทึก..." ชัดเจนว่าไม่ได้ค้าง
-    function lockButton(btn) {
-      if (!btn) return null;
-      if (btn.dataset.locked === "1") return null; // ล็อกอยู่แล้ว ไม่ให้ยิงซ้ำ
-      btn.dataset.locked = "1";
-      btn.dataset.originalText = btn.innerText;
-      btn.disabled = true;
-      btn.classList.add('opacity-50', 'pointer-events-none');
-      btn.innerText = "กำลังบันทึก...";
-      return btn;
-    }
-    function unlockButton(btn) {
-      if (!btn) return;
-      btn.dataset.locked = "0";
-      btn.disabled = false;
-      btn.classList.remove('opacity-50', 'pointer-events-none');
-      if (btn.dataset.originalText) btn.innerText = btn.dataset.originalText;
-    }
-
-    const REQUEST_TIMEOUT_MS = 25000; // ยาวกว่านี้ถือว่าผู้ใช้รอไม่ไหวแล้ว ต้องแจ้งให้รู้ ไม่ใช่ปล่อยค้าง
-
-    function gasCall(fnName, args, successFn, failFn, btn, reqId, isRetry, timeoutMs) {
-      if (!isRetry) showLoadingOverlay();
-      reqId = reqId || makeReqId();
-      timeoutMs = timeoutMs || REQUEST_TIMEOUT_MS;
+    // 3. ปรับปรุง gasCall ให้มี Timeout และรองรับการจัดการ Network Error เพื่อความเสถียร
+    function gasCall(fnName, args, successFn, failFn) {
+      showLoadingOverlay();
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // กันค้าง: ตัด Request ถ้ารอเกิน 15 วินาที
 
       fetch(APPS_SCRIPT_URL, {
         method: "POST",
-        // ใช้ text/plain เพื่อเลี่ยง CORS preflight (Apps Script ไม่รองรับ OPTIONS request)
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ fn: fnName, args: args, reqId: reqId }),
+        body: JSON.stringify({ fn: fnName, args: args }),
         signal: controller.signal
       })
-        .then(res => res.json())
-        .then(data => {
+        .then(res => {
           clearTimeout(timeoutId);
+          if (!res.ok) throw new Error(`HTTP Error Status: ${res.status}`);
+          return res.json();
+        })
+        .then(data => {
           hideLoadingOverlay();
-          unlockButton(btn);
           if (data.__error) {
-            if (failFn) failFn(data.__error); else console.error(data.__error);
+            if (failFn) failFn(data.__error);
+            else console.error("GAS Error:", data.__error);
           } else if (successFn) {
             successFn(data.result);
           }
         })
         .catch(err => {
           clearTimeout(timeoutId);
-          const timedOut = err.name === "AbortError";
-
-          // ยิงซ้ำอัตโนมัติแค่ 1 ครั้งตอน timeout/หลุดเน็ต โดยใช้ reqId เดิม
-          // ปลอดภัยเพราะ backend เช็ค reqId แล้วจะไม่บันทึกข้อมูลซ้ำ ถ้าครั้งแรกอันที่จริงสำเร็จไปแล้ว
-          if (!isRetry) {
-            console.warn("gasCall ครั้งแรกไม่สำเร็จ กำลังลองใหม่อัตโนมัติ...", err);
-            gasCall(fnName, args, successFn, failFn, btn, reqId, true, timeoutMs);
-            return;
+          hideLoadingOverlay();
+          console.error("gasCall Network Error:", err);
+          
+          let errorMsg = "ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต หรือลองใหม่อีกครั้ง";
+          if (err.name === 'AbortError') {
+            errorMsg = "การเชื่อมต่อใช้เวลานานเกินไป (Timeout) กรุณาลองใหม่อีกครั้ง";
           }
 
-          hideLoadingOverlay();
-          unlockButton(btn);
-          console.error("gasCall network error:", err);
-          const msg = timedOut
-            ? "เซิร์ฟเวอร์ตอบช้าผิดปกติ ข้อมูลอาจถูกบันทึกไปแล้วหรือไม่ก็ได้ กรุณาตรวจสอบก่อนกดบันทึกซ้ำ"
-            : "ตรวจสอบอินเทอร์เน็ต หรือ APPS_SCRIPT_URL ให้ถูกต้อง";
-          if (failFn) failFn(msg);
-          else triggerAlert("เชื่อมต่อไม่สำเร็จ ❌", msg, "❌");
+          if (failFn) failFn(err.toString());
+          else triggerAlert("เชื่อมต่อไม่สำเร็จ ❌", errorMsg, "❌");
         });
     }
 
@@ -503,19 +471,12 @@
         run: {
           withSuccessHandler(successFn) {
             let failFn = null;
-            let btnEl = null;
-            let timeoutMs = null;
             const runner = new Proxy({}, {
               get(_, fnName) {
-                return (...args) => gasCall(fnName, args, successFn, failFn, btnEl, null, false, timeoutMs);
+                return (...args) => gasCall(fnName, args, successFn, failFn);
               }
             });
             runner.withFailureHandler = (fn) => { failFn = fn; return runner; };
-            // เรียกใช้แบบ .withSuccessHandler(cb).withButton(event.currentTarget).ฟังก์ชัน(args)
-            // เพื่อล็อกปุ่มที่กดจริงระหว่างรอผล ไม่ใช่แค่ปิด overlay ลอย ๆ
-            runner.withButton = (el) => { btnEl = lockButton(el); return runner; };
-            // สำหรับคำขอที่ใช้เวลานานเป็นพิเศษ (เช่น อัปโหลดไฟล์แนบสลิป) ขยาย timeout ได้ผ่านตัวนี้
-            runner.withTimeout = (ms) => { timeoutMs = ms; return runner; };
             return runner;
           }
         }
@@ -529,7 +490,6 @@
       localStorage.setItem('colorTheme', isDark ? 'dark' : 'light');
       document.getElementById('darkModeBtn').innerText = isDark ? '☀️' : '🌙';
     }
-    // ตั้งไอคอนปุ่มให้ตรงกับสถานะปัจจุบัน (คลาส dark ถูกใส่ไว้แล้วตั้งแต่ก่อน body โหลด ถ้าเคยเลือกไว้)
     document.addEventListener('DOMContentLoaded', () => {
       if (document.documentElement.classList.contains('dark')) {
         document.getElementById('darkModeBtn').innerText = '☀️';
@@ -544,15 +504,20 @@
     let currentCameraId = null;
     let availableCameras = [];
 
+    // 🚀 โหลดข้อมูลเริ่มต้นแบบ Parallel (พร้อมกัน)
     window.onload = () => {
-      loadFinance();
-      loadCalendar();
-      refreshDashboard();
-      loadLeaveList();
+      refreshAllData();
     };
 
+    function refreshAllData() {
+      loadFinance(true);
+      loadCalendar(true);
+      refreshDashboard(true);
+      loadLeaveList(true);
+    }
+
+    // 🚀 สลับแท็บ รวดเร็วผ่าน Cache
     function switchTab(tab) {
-      // จำไว้ก่อนว่ากำลังอยู่แท็บสแกนเนอร์หรือไม่ ก่อนจะซ่อนทุก section
       const wasOnScannerTab = !document.getElementById('sectionScanner').classList.contains('hidden');
 
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -564,26 +529,24 @@
       if(tab === 'finance') {
         document.getElementById('tabFinanceBtn').classList.add('active');
         document.getElementById('sectionFinance').classList.remove('hidden');
+        if(!dataCache.finance) loadFinance();
       } else if(tab === 'scanner') {
         document.getElementById('tabScannerBtn').classList.add('active');
         document.getElementById('sectionScanner').classList.remove('hidden');
-        // สำคัญ: ต้องเปิดกล้อง "หลังจาก" section นี้แสดงผลจริงแล้วเท่านั้น
-        // เพราะถ้า #reader ยังโดนซ่อนด้วย class hidden (display:none) อยู่ ขนาดของมันจะเป็น 0x0
-        // ทำให้ html5-qrcode คำนวณ qrbox ได้ 0px (ต่ำกว่าขั้นต่ำ 50px ที่ไลบรารีบังคับ)
-        // แล้วโยน error แบบ uncaught ทำให้กล้องค้างครึ่งๆ กลางๆ ทั้งสแกนไม่ติดและสลับกล้องไม่ได้
         if (loggedInUser) {
           requestAnimationFrame(() => startCamera());
         }
       } else if(tab === 'leave') {
         document.getElementById('tabLeaveBtn').classList.add('active');
         document.getElementById('sectionLeave').classList.remove('hidden');
+        if(!dataCache.leave) loadLeaveList();
+        if(!dataCache.calendar) loadCalendar();
       } else {
         document.getElementById('tabDashboardBtn').classList.add('active');
         document.getElementById('sectionDashboard').classList.remove('hidden');
+        if(!dataCache.dashboard) refreshDashboard();
       }
 
-      // ปิดกล้องทุกครั้งที่ออกจากแท็บสแกนเนอร์ เพื่อคืนทรัพยากรกล้องให้เบราว์เซอร์
-      // และป้องกันไม่ให้ instance ของสแกนเนอร์ค้างอยู่ในสถานะผิดพลาดจากรอบก่อนหน้า
       if (wasOnScannerTab && tab !== 'scanner') {
         stopCamera();
       }
@@ -602,42 +565,55 @@
     function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
     function formatMoney(num) { return '฿' + num.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,'); }
 
-    // --- 1. โหลดข้อมูลบัญชี ---
-    function loadFinance() {
+    // --- 1. ระบบบัญชี ---
+    function loadFinance(forceRefresh = false) {
+      if (!forceRefresh && dataCache.finance) {
+        renderFinanceUI(dataCache.finance);
+        return;
+      }
       google.script.run.withSuccessHandler(data => {
         if(data.error) return;
-        document.getElementById('val-balance').innerText = formatMoney(data.balance);
-        document.getElementById('val-income').innerText = formatMoney(data.totalIncome);
-        document.getElementById('val-expense').innerText = formatMoney(data.totalExpense);
-        let h = "";
-        for(let i = data.list.length-1; i >=0; i--) {
-          let item = data.list[i];
-          let inc = item.income > 0 ? `<span class="text-green-500 font-semibold">+${formatMoney(item.income)}</span>` : "-";
-          let exp = item.expense > 0 ? `<span class="text-red-400">-${formatMoney(item.expense)}</span>` : "-";
-          
-          let receiptBtn = "-";
-          if (item.receiptUrl) {
-            receiptBtn = `<a href="${item.receiptUrl}" target="_blank" class="bg-orange-50 text-orange-600 border border-orange-200 px-2.5 py-1 rounded-full hover:bg-orange-100 transition inline-block">📄 เปิดดูรูป</a>`;
-          } else {
-            receiptBtn = `<span class="text-gray-300 italic">ไม่มีหลักฐาน</span>`;
-          }
-
-          let manageBtn = loggedInRole === 'admin'
-            ? `<button onclick="deleteFinanceRecord(${item.rowId})" class="text-red-400 hover:text-red-500 text-[11px] font-medium">🗑 ลบ</button>`
-            : `<span class="text-gray-300">-</span>`;
-
-          h += `<tr class="tr-row">
-                  <td class="p-3 pl-4 text-gray-400">${item.date}</td>
-                  <td class="p-3 font-medium">${item.desc}</td>
-                  <td class="p-3 text-right">${inc}</td>
-                  <td class="p-3 text-right">${exp}</td>
-                  <td class="p-3 text-center">${receiptBtn}</td>
-                  <td class="p-3 text-center text-gray-400">${item.by || 'ทั่วไป'}</td>
-                  <td class="p-3 text-center">${manageBtn}</td>
-                </tr>`;
-        }
-        document.getElementById('table-body').innerHTML = h || "<tr><td colspan='7' class='p-4 text-center'>ไม่มีรายการ</td></tr>";
+        dataCache.finance = data;
+        renderFinanceUI(data);
       }).getFinanceData();
+    }
+
+    function renderFinanceUI(data) {
+      document.getElementById('val-balance').innerText = formatMoney(data.balance);
+      document.getElementById('val-income').innerText = formatMoney(data.totalIncome);
+      document.getElementById('val-expense').innerText = formatMoney(data.totalExpense);
+      
+      const fragment = document.createDocumentFragment();
+      for(let i = data.list.length-1; i >=0; i--) {
+        let item = data.list[i];
+        let inc = item.income > 0 ? `<span class="text-green-500 font-semibold">+${formatMoney(item.income)}</span>` : "-";
+        let exp = item.expense > 0 ? `<span class="text-red-400">-${formatMoney(item.expense)}</span>` : "-";
+        
+        let receiptBtn = item.receiptUrl 
+          ? `<a href="${item.receiptUrl}" target="_blank" class="bg-orange-50 text-orange-600 border border-orange-200 px-2.5 py-1 rounded-full hover:bg-orange-100 transition inline-block">📄 เปิดดูรูป</a>`
+          : `<span class="text-gray-300 italic">ไม่มีหลักฐาน</span>`;
+
+        let manageBtn = loggedInRole === 'admin'
+          ? `<button onclick="deleteFinanceRecord(${item.rowId})" class="text-red-400 hover:text-red-500 text-[11px] font-medium">🗑 ลบ</button>`
+          : `<span class="text-gray-300">-</span>`;
+
+        const tr = document.createElement('tr');
+        tr.className = 'tr-row';
+        tr.innerHTML = `
+          <td class="p-3 pl-4 text-gray-400">${item.date}</td>
+          <td class="p-3 font-medium">${item.desc}</td>
+          <td class="p-3 text-right">${inc}</td>
+          <td class="p-3 text-right">${exp}</td>
+          <td class="p-3 text-center">${receiptBtn}</td>
+          <td class="p-3 text-center text-gray-400">${item.by || 'ทั่วไป'}</td>
+          <td class="p-3 text-center">${manageBtn}</td>
+        `;
+        fragment.appendChild(tr);
+      }
+      const tbody = document.getElementById('table-body');
+      tbody.innerHTML = "";
+      if(data.list.length > 0) tbody.appendChild(fragment);
+      else tbody.innerHTML = "<tr><td colspan='7' class='p-4 text-center'>ไม่มีรายการ</td></tr>";
     }
 
     function deleteFinanceRecord(rowId) {
@@ -645,41 +621,50 @@
       google.script.run.withSuccessHandler(res => {
         if (res.success) {
           triggerAlert("ลบสำเร็จ ✅", "ลบรายการบัญชีเรียบร้อยแล้ว", "🗑");
-          loadFinance();
+          loadFinance(true);
         } else {
           triggerAlert("ลบไม่สำเร็จ", res.message || "เกิดข้อผิดพลาด", "❌");
         }
       }).deleteRecord(rowId);
     }
 
-    // --- 2. โหลดปฏิทินกิจกรรม ---
+    // --- 2. ปฏิทิน ---
     let calendarEventsCache = [];
     let allStudentsCache = [];
-    let calGridDate = new Date(); // เดือน/ปีที่กำลังแสดงในมุมมองปฏิทิน
+    let calGridDate = new Date();
     const thaiMonths = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 
-    function loadCalendar() {
+    function loadCalendar(forceRefresh = false) {
+      if (!forceRefresh && dataCache.calendar) {
+        calendarEventsCache = dataCache.calendar;
+        renderCalendarUI(calendarEventsCache);
+        return;
+      }
       google.script.run.withSuccessHandler(list => {
+        dataCache.calendar = list;
         calendarEventsCache = list;
-        let h = "";
-        list.forEach(item => {
-          let manageBtn = loggedInRole === 'admin'
-            ? `<button onclick="deleteCalendarEvent(${item.rowId})" class="text-red-400 hover:text-red-500 text-[11px] font-medium">🗑 ลบ</button>`
-            : `<span class="text-gray-300">-</span>`;
-          let rosterText = (item.requiredNames && item.requiredNames.length > 0)
-            ? `<span class="text-orange-600 font-medium">${item.requiredNames.length} คน:</span> ${item.requiredNames.join(', ')}`
-            : `<span class="text-gray-400 italic">ทุกคน</span>`;
-          h += `<tr class="tr-row"><td class="p-2.5 pl-4 font-semibold text-orange-600 whitespace-nowrap">${item.date}</td><td class="p-2.5 text-gray-700">${item.event}</td><td class="p-2.5 text-gray-500 max-w-[180px]">${rosterText}</td><td class="p-2.5 text-center">${manageBtn}</td></tr>`;
-        });
-        document.getElementById('calendar-body').innerHTML = h || "<tr><td colspan='4' class='p-4 text-center text-gray-400'>ยังไม่มีกำหนดการซ้อม</td></tr>";
-
-        if (!document.getElementById('calendarGridView').classList.contains('hidden')) {
-          renderCalendarGrid();
-        }
+        renderCalendarUI(list);
       }).getCalendarData();
     }
 
-    // --- สลับมุมมอง รายการ / ปฏิทิน ---
+    function renderCalendarUI(list) {
+      let h = "";
+      list.forEach(item => {
+        let manageBtn = loggedInRole === 'admin'
+          ? `<button onclick="deleteCalendarEvent(${item.rowId})" class="text-red-400 hover:text-red-500 text-[11px] font-medium">🗑 ลบ</button>`
+          : `<span class="text-gray-300">-</span>`;
+        let rosterText = (item.requiredNames && item.requiredNames.length > 0)
+          ? `<span class="text-orange-600 font-medium">${item.requiredNames.length} คน:</span> ${item.requiredNames.join(', ')}`
+          : `<span class="text-gray-400 italic">ทุกคน</span>`;
+        h += `<tr class="tr-row"><td class="p-2.5 pl-4 font-semibold text-orange-600 whitespace-nowrap">${item.date}</td><td class="p-2.5 text-gray-700">${item.event}</td><td class="p-2.5 text-gray-500 max-w-[180px]">${rosterText}</td><td class="p-2.5 text-center">${manageBtn}</td></tr>`;
+      });
+      document.getElementById('calendar-body').innerHTML = h || "<tr><td colspan='4' class='p-4 text-center text-gray-400'>ยังไม่มีกำหนดการซ้อม</td></tr>";
+
+      if (!document.getElementById('calendarGridView').classList.contains('hidden')) {
+        renderCalendarGrid();
+      }
+    }
+
     function setCalendarView(view) {
       const listBtn = document.getElementById('calViewListBtn');
       const gridBtn = document.getElementById('calViewGridBtn');
@@ -708,11 +693,10 @@
       renderCalendarGrid();
     }
 
-    // แปลง "dd/MM/yyyy" ที่ backend ส่งมา ให้เป็น key เทียบวันที่ได้ง่ายๆ
     function parseThaiDateKey(dateStr) {
       const parts = dateStr.split('/');
       if (parts.length !== 3) return null;
-      return `${parts[2]}-${parts[1]}-${parts[0]}`; // yyyy-MM-dd
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
     }
 
     function renderCalendarGrid() {
@@ -720,7 +704,6 @@
       const month = calGridDate.getMonth();
       document.getElementById('calGridMonthLabel').innerText = `${thaiMonths[month]} ${year + 543}`;
 
-      // จัดกลุ่มกิจกรรมตามวันที่ (key: yyyy-MM-dd)
       let eventsByDate = {};
       calendarEventsCache.forEach(ev => {
         const key = parseThaiDateKey(ev.date);
@@ -730,7 +713,7 @@
       });
 
       const firstDay = new Date(year, month, 1);
-      const startWeekday = firstDay.getDay(); // 0=อา
+      const startWeekday = firstDay.getDay();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const todayKey = (() => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; })();
 
@@ -768,19 +751,20 @@
       toggleModal('calDayDetailModal');
     }
 
-    // --- modal เพิ่มกิจกรรม + ตัวเลือกคนที่ต้องเข้า ---
     function openCalendarModal() {
       document.getElementById('cal-require-all').checked = true;
       document.getElementById('cal-roster-picker').classList.add('hidden');
       toggleModal('calendarModal');
 
-      if (allStudentsCache.length === 0) {
+      if (dataCache.students) {
+        allStudentsCache = dataCache.students;
+        renderRosterPicker();
+      } else {
         google.script.run.withSuccessHandler(list => {
+          dataCache.students = list;
           allStudentsCache = list;
           renderRosterPicker();
         }).getAllStudents();
-      } else {
-        renderRosterPicker();
       }
     }
 
@@ -800,7 +784,7 @@
       document.getElementById('cal-roster-picker').classList.toggle('hidden', requireAll);
     }
 
-    function submitCalendarEvent(event) {
+    function submitCalendarEvent() {
       const date = document.getElementById('cal-date').value;
       const eventText = document.getElementById('cal-event').value;
       if (!date || !eventText) return triggerAlert("ข้อมูลไม่ครบถ้วน", "กรุณาเลือกวันที่และกรอกชื่อกิจกรรม", "⚠️");
@@ -820,11 +804,11 @@
           document.getElementById('cal-date').value = "";
           document.getElementById('cal-event').value = "";
           triggerAlert("เพิ่มกิจกรรมสำเร็จ ✅", "เพิ่มกิจกรรมลงปฏิทินเรียบร้อยแล้ว", "📅");
-          loadCalendar();
+          loadCalendar(true);
         } else {
           triggerAlert("เพิ่มไม่สำเร็จ", res.message || "เกิดข้อผิดพลาด", "❌");
         }
-      }).withButton(event.currentTarget).addCalendarEvent(date, eventText, studentIds);
+      }).addCalendarEvent(date, eventText, studentIds);
     }
 
     function deleteCalendarEvent(rowId) {
@@ -832,7 +816,7 @@
       google.script.run.withSuccessHandler(res => {
         if (res.success) {
           triggerAlert("ลบสำเร็จ ✅", "ลบกิจกรรมออกจากปฏิทินแล้ว", "🗑");
-          loadCalendar();
+          loadCalendar(true);
         } else {
           triggerAlert("ลบไม่สำเร็จ", res.message || "เกิดข้อผิดพลาด", "❌");
         }
@@ -844,25 +828,22 @@
       google.script.run.withSuccessHandler(res => {
         if (res.success) {
           triggerAlert("ซิงก์สำเร็จ ✅", `เพิ่มใหม่ ${res.added} รายการ, ลบออก ${res.removed} รายการ`, "🔄");
-          loadCalendar();
+          loadCalendar(true);
         } else {
           triggerAlert("ซิงก์ไม่สำเร็จ", res.message || "เกิดข้อผิดพลาด", "❌");
         }
       }).syncCalendarFromGoogle();
     }
 
-    // --- 3. ระบบกล้องถอดรหัส (เน้นแก้ปัญหา Sandbox iframe บล็อกสิทธิ์) ---
+    // --- 3. ระบบกล้องถอดรหัส ---
     function startCamera() {
       document.getElementById('lockNotice').classList.add('hidden');
       document.getElementById('scannerContainer').classList.remove('hidden');
 
-      // เช็กก่อนว่าเบราว์เซอร์/สภาพแวดล้อมนี้รองรับกล้องหรือไม่
-      // (มักเกิดปัญหานี้เวลาเปิดลิงก์ผ่าน In-App Browser ของ LINE/Facebook/Instagram
-      //  หรือเปิดผ่าน HTTP ธรรมดาที่ไม่ใช่ HTTPS)
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         triggerAlert(
           "อุปกรณ์นี้ไม่รองรับกล้อง 🔒",
-          "เบราว์เซอร์หรือแอปที่เปิดอยู่ไม่รองรับการเข้าถึงกล้อง (มักเจอเวลาเปิดลิงก์ผ่านแอป LINE/Facebook/Instagram)\n\n💡 กรุณากดจุดสามจุด/เมนู แล้วเลือก 'เปิดด้วยเบราว์เซอร์' (Chrome/Safari) แทนครับ",
+          "เบราว์เซอร์หรือแอปที่เปิดอยู่ไม่รองรับการเข้าถึงกล้อง\n\n💡 กรุณากดเมนู แล้วเลือก 'เปิดด้วยเบราว์เซอร์' (Chrome/Safari) แทนครับ",
           "❌"
         );
         return;
@@ -872,12 +853,8 @@
         html5QrcodeScanner = new Html5Qrcode("reader");
       }
 
-      // ขอสิทธิ์กล้องแบบตรงๆ ก่อน 1 ครั้ง เพื่อบังคับให้เบราว์เซอร์เด้ง popup ขอสิทธิ์
-      // ให้ชัดเจน (บางเบราว์เซอร์จะไม่เด้ง permission prompt ถ้าเรียก getCameras() ตรงๆ
-      // โดยยังไม่เคยมีการขอ getUserMedia มาก่อนเลย)
       navigator.mediaDevices.getUserMedia({ video: true })
         .then(stream => {
-          // ปิด stream ทดสอบทันที ไม่ต้องใช้ต่อ (แค่ขอสิทธิ์เฉยๆ)
           stream.getTracks().forEach(track => track.stop());
           detectCamerasAndStart();
         })
@@ -888,7 +865,6 @@
     }
 
     function detectCamerasAndStart() {
-      // ตรวจสอบและค้นหากล้องของอุปกรณ์ผ่านไลบรารีโดยตรง
       Html5Qrcode.getCameras().then(devices => {
         if (devices && devices.length > 0) {
           availableCameras = devices;
@@ -903,7 +879,6 @@
           });
           document.getElementById('cameraSelectContainer').classList.remove('hidden');
           
-          // ค้นหากล้องหลัง (Back/Environment) เพื่อความสะดวกในการแสกนหน้าซุ้ม
           let targetCameraId = devices[0].id;
           for(let d of devices) {
             const labelLower = d.label.toLowerCase();
@@ -917,12 +892,10 @@
 
           executeScannerStream(targetCameraId);
         } else {
-          // หากยังไม่เจอตัวอุปกรณ์ ให้ลองรันด้วยฟังก์ชันอัตโนมัติของตัวสแกนทันที
           executeScannerStream({ facingMode: "environment" });
         }
       }).catch(err => {
         console.warn("Camera fallback applied:", err);
-        // Fallback: ถ้า getCameras ถูกสกัดกั้น ให้สั่งเริ่มทำงานผ่าน FacingMode ทันที
         executeScannerStream({ facingMode: "environment" });
       });
     }
@@ -933,8 +906,6 @@
         qrbox: function(viewfinderWidth, viewfinderHeight) {
           const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
           const boxWidth = Math.floor(minEdge * 0.7);
-          // กันไว้อีกชั้น: ไลบรารีบังคับขั้นต่ำ 50px ถ้าปล่อยให้ต่ำกว่านี้ (เช่น container ยังไม่มีขนาดจริง)
-          // จะโยน error แบบ uncaught ทำให้กล้องค้าง จึง clamp ค่าไว้ไม่ให้ต่ำกว่า 50px เสมอ
           const safeSize = Math.max(boxWidth, 50);
           return { width: safeSize, height: safeSize };
         },
@@ -960,8 +931,6 @@
       }
     }
 
-    // --- โหมดเต็มจอกันโกง (Kiosk Mode) ---
-    // แสดงเฉพาะกล้อง ซ่อนเมนู/แผงพิมพ์รหัสด้วยมือ ป้องกันนักเรียนพิมพ์เช็กชื่อแทนเพื่อน
     function enterKioskMode() {
       if (!loggedInUser) {
         triggerAlert("ต้องล็อกอินก่อน 🔒", "กรุณาล็อกอินสตาฟและเปิดกล้องให้ทำงานก่อนเข้าโหมดเต็มจอครับ", "🔒");
@@ -972,12 +941,9 @@
       document.getElementById('enterKioskBtn').classList.add('hidden');
       document.getElementById('exitKioskBtn').classList.remove('hidden');
 
-      // ลองขอ fullscreen จริงของเบราว์เซอร์เพิ่มเติม (บาง browser เช่น iOS Safari จะไม่รองรับ แต่ไม่เป็นไร
-      // เพราะโหมดเต็มจอแบบ CSS ด้านบนทำงานอยู่แล้วโดยไม่ต้องพึ่งฟีเจอร์นี้)
       if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen().catch(() => {});
       }
-      // กันการกดปุ่มย้อนกลับของมือถือเพื่อออกจากโหมด
       history.pushState(null, '', location.href);
     }
 
@@ -1014,7 +980,6 @@
       }).checkLogin(u, p);
     }
 
-    // สลับกล้องหน้า/หลัง (หรือวนไปทีละตัวถ้ามีมากกว่า 2 กล้อง)
     function flipCamera() {
       if (!availableCameras || availableCameras.length < 2) {
         triggerAlert("มีกล้องเดียว 📷", "อุปกรณ์นี้ตรวจพบกล้องแค่ตัวเดียว ไม่สามารถสลับได้ครับ", "📷");
@@ -1035,7 +1000,7 @@
         google.script.run.withSuccessHandler(res => {
           if(res.success) {
             triggerAlert("สแกนสำเร็จ ✅", `สตาฟ/สมาชิก: ${res.name}\nบันทึกเวลา ${type} เรียบร้อย`, "🎉");
-            refreshDashboard();
+            refreshDashboard(true);
           } else {
             triggerAlert("สแกนล้มเหลว ❌", res, "⚠️");
           }
@@ -1046,10 +1011,9 @@
 
     let _scanLoopConfirmed = false;
     function onScanError(err) {
-      // ทำงานเบื้องหลังเงียบๆ เพื่อลดการประมวลผลซ้ำซ้อน (error นี้ปกติมากเพราะเรียกทุกเฟรมที่ยังไม่เจอ QR)
       if (!_scanLoopConfirmed) {
         _scanLoopConfirmed = true;
-        console.log("✅ ตัวสแกน QR เริ่มทำงานแล้ว (decode loop กำลังรันอยู่)");
+        console.log("✅ ตัวสแกน QR เริ่มทำงานแล้ว");
       }
     }
 
@@ -1090,7 +1054,7 @@
     }
 
     // --- 4. บันทึกข้อมูลโดยสตาฟ ---
-    function submitManualAttendance(event) {
+    function submitManualAttendance() {
       let id = document.getElementById('manual-id').value;
       let date = document.getElementById('manual-date').value;
       let type = document.getElementById('manual-type').value;
@@ -1099,14 +1063,14 @@
       google.script.run.withSuccessHandler(res => {
         if(res === true) {
           triggerAlert("บันทึกประวัติเพิ่มเติมสำเร็จ", "ข้อมูลถูกบันทึกลงฐานข้อมูลแล้ว", "✅");
-          refreshDashboard();
+          refreshDashboard(true);
           document.getElementById('manual-id').value = "";
         } else { triggerAlert("เกิดข้อผิดพลาด", res, "❌"); }
-      }).withButton(event.currentTarget).staffAddAttendance(id, date, type);
+      }).staffAddAttendance(id, date, type);
     }
 
     // --- 5. ส่งฟอร์มแจ้งลาออนไลน์ ---
-    function sendLeaveForm(event) {
+    function sendLeaveForm() {
       let id = document.getElementById('leave-id').value;
       let date = document.getElementById('leave-date').value;
       let reason = document.getElementById('leave-reason').value;
@@ -1116,16 +1080,22 @@
         if(res.success) {
           triggerAlert("ยื่นใบลาสำเร็จ ✅", `ระบบบันทึกการลาของ ${res.name} เรียบร้อยแล้ว`, "📝");
           document.getElementById('leave-id').value = ""; document.getElementById('leave-reason').value = "";
-          refreshDashboard();
-          loadLeaveList();
+          refreshDashboard(true);
+          loadLeaveList(true);
         } else { triggerAlert("ล้มเหลว", res, "❌"); }
-      }).withButton(event.currentTarget).submitLeave(id, date, reason);
+      }).submitLeave(id, date, reason);
     }
 
-    // --- 5.1 หน้ารายชื่อคนลา (ใครลาบ้าง) ---
+    // --- 5.1 หน้ารายชื่อคนลา ---
     let leaveDataCache = [];
-    function loadLeaveList() {
+    function loadLeaveList(forceRefresh = false) {
+      if (!forceRefresh && dataCache.leave) {
+        leaveDataCache = dataCache.leave;
+        renderLeaveList();
+        return;
+      }
       google.script.run.withSuccessHandler(list => {
+        dataCache.leave = list;
         leaveDataCache = list;
         renderLeaveList();
       }).getLeaveData();
@@ -1143,7 +1113,6 @@
         );
       }
 
-      // เรียงตามวันที่ลา ล่าสุดขึ้นก่อน แล้วจัดกลุ่มตามวันที่
       const parseDMY = (d) => { const p = (d || "").split('/'); return p.length === 3 ? new Date(p[2], p[1]-1, p[0]) : new Date(0); };
       const sorted = [...filtered].sort((a, b) => parseDMY(b.leaveDate) - parseDMY(a.leaveDate));
 
@@ -1175,24 +1144,34 @@
     }
 
     // --- 6. แดชบอร์ดสถิติ ---
-    function refreshDashboard() {
+    function refreshDashboard(forceRefresh = false) {
+      if (!forceRefresh && dataCache.dashboard) {
+        renderDashboardUI(dataCache.dashboard);
+        return;
+      }
       google.script.run.withSuccessHandler(res => {
         if(res.error) return;
-        document.getElementById('stat-total-students').innerText = res.teamStats.totalStudents + " คน";
-        document.getElementById('stat-total-events').innerText = res.teamStats.totalEvents + " วัน";
-        document.getElementById('stat-present-rate').innerText = res.teamStats.presentRate;
-        document.getElementById('stat-total-leave').innerText = res.teamStats.totalLeave + " ครั้ง";
-        
-        cachedStudentsData = res.studentsList;
-        renderDashboardTable(cachedStudentsData);
+        dataCache.dashboard = res;
+        renderDashboardUI(res);
       }).getDashboardAndData();
     }
 
+    function renderDashboardUI(res) {
+      document.getElementById('stat-total-students').innerText = res.teamStats.totalStudents + " คน";
+      document.getElementById('stat-total-events').innerText = res.teamStats.totalEvents + " วัน";
+      document.getElementById('stat-present-rate').innerText = res.teamStats.presentRate;
+      document.getElementById('stat-total-leave').innerText = res.teamStats.totalLeave + " ครั้ง";
+      
+      cachedStudentsData = res.studentsList;
+      renderDashboardTable(cachedStudentsData);
+    }
+
     function renderDashboardTable(list) {
-      let h = "";
+      const fragment = document.createDocumentFragment();
       list.forEach(s => {
-        h += `
-        <tr class="tr-row">
+        const tr = document.createElement('tr');
+        tr.className = 'tr-row';
+        tr.innerHTML = `
           <td class="p-3 pl-4 font-mono text-gray-500">${s.id}</td>
           <td class="p-3 font-semibold text-gray-800">${s.name} (${s.nickname})</td>
           <td class="p-3 text-center text-gray-600">ม.4/${s.room}</td>
@@ -1202,24 +1181,33 @@
           <td class="p-3 text-center text-red-400 font-bold">${s.absentCount}</td>
           <td class="p-3 text-center pr-4">
             <button onclick="viewIndividualHistory('${s.id}')" class="text-[11px] orange-accent hover:underline font-medium">ดูประวัติ</button>
-          </td>
-        </tr>`;
+          </td>`;
+        fragment.appendChild(tr);
       });
-      document.getElementById('dashboard-table-body').innerHTML = h || "<tr><td colspan='8' class='p-4 text-center'>ไม่พบข้อมูลสถิติ</td></tr>";
+      
+      const tbody = document.getElementById('dashboard-table-body');
+      tbody.innerHTML = "";
+      if (list.length > 0) tbody.appendChild(fragment);
+      else tbody.innerHTML = "<tr><td colspan='8' class='p-4 text-center'>ไม่พบข้อมูลสถิติ</td></tr>";
     }
 
+    // Debounce การค้นหา พิมพ์ได้ลื่น ไม่กระตุก
+    let searchTimeout;
     function filterStudents() {
-      let q = document.getElementById('searchBox').value.toLowerCase().trim();
-      if(!q) return renderDashboardTable(cachedStudentsData);
-      
-      let filtered = cachedStudentsData.filter(s => {
-        return s.name.toLowerCase().includes(q) || 
-               s.nickname.toLowerCase().includes(q) || 
-               s.id.toString().includes(q) || 
-               s.room.toString().includes(q) || 
-               ("ม.4/" + s.room).includes(q);
-      });
-      renderDashboardTable(filtered);
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        let q = document.getElementById('searchBox').value.toLowerCase().trim();
+        if(!q) return renderDashboardTable(cachedStudentsData);
+        
+        let filtered = cachedStudentsData.filter(s => {
+          return s.name.toLowerCase().includes(q) || 
+                 s.nickname.toLowerCase().includes(q) || 
+                 s.id.toString().includes(q) || 
+                 s.room.toString().includes(q) || 
+                 ("ม.4/" + s.room).includes(q);
+        });
+        renderDashboardTable(filtered);
+      }, 150);
     }
 
     function viewIndividualHistory(studentId) {
@@ -1236,7 +1224,6 @@
       if (student.history.length === 0) {
         body = `<p class="text-gray-400 text-center py-6">ยังไม่มีประวัติการเช็กชื่อเข้าบ้านสี</p>`;
       } else {
-        // เรียงล่าสุดขึ้นก่อน
         const sorted = [...student.history].reverse();
         sorted.forEach(h => {
           const isLeave = h.type === "แจ้งลาออนไลน์";
@@ -1256,7 +1243,7 @@
     }
 
     // --- 7. การล็อกอินสตาฟ ---
-    function loginProcess(event) {
+    function loginProcess() {
       let u = document.getElementById('username').value;
       let p = document.getElementById('password').value;
       google.script.run.withSuccessHandler(res => {
@@ -1269,22 +1256,18 @@
           document.getElementById('staffManualRow').classList.remove('opacity-40', 'pointer-events-none');
           document.getElementById('staffManualNotice').classList.add('hidden');
 
-          // เปิดปุ่มจัดการข้อมูล (เพิ่ม/ลบ บัญชี, ปฏิทิน) เฉพาะ role = admin เท่านั้น
           if (loggedInRole === 'admin') {
             document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
           }
-          loadFinance();
-          loadCalendar();
+          loadFinance(true);
+          loadCalendar(true);
 
-          // เปิดกล้องทันทีเฉพาะกรณีที่ตอนล็อกอินอยู่ในแท็บสแกนเนอร์อยู่แล้วเท่านั้น
-          // (ถ้าอยู่แท็บอื่น #sectionScanner จะยังซ่อนอยู่ ทำให้ #reader มีขนาด 0x0 แล้วกล้องพังตอน start)
-          // กรณีอยู่แท็บอื่น กล้องจะถูกเปิดอัตโนมัติเองตอนกดเข้าแท็บ "กล้องสแกนเช็กชื่อ" แทน (ดูฟังก์ชัน switchTab)
           if (!document.getElementById('sectionScanner').classList.contains('hidden')) {
             startCamera();
           }
           triggerAlert("ยินดีต้อนรับสตาฟสีแสด", "เปิดระบบสแกนเครื่องกลางและแผงควบคุมสตาฟแล้วครับ", "🍊");
         } else { triggerAlert("ข้อผิดพลาด", res.message, "❌"); }
-      }).withButton(event.currentTarget).checkLogin(u, p);
+      }).checkLogin(u, p);
     }
 
     function logoutProcess() {
@@ -1296,42 +1279,39 @@
       document.getElementById('staffManualRow').classList.add('opacity-40', 'pointer-events-none');
       document.getElementById('staffManualNotice').classList.remove('hidden');
 
-      // ปิดโหมดเต็มจอด้วย (ถ้าเปิดค้างอยู่) เพื่อความปลอดภัย
       document.body.classList.remove('kiosk-mode');
       document.getElementById('scannerCard').classList.remove('kiosk-mode-card');
       document.getElementById('enterKioskBtn').classList.remove('hidden');
       document.getElementById('exitKioskBtn').classList.add('hidden');
 
-      loadFinance();
-      loadCalendar();
+      loadFinance(true);
+      loadCalendar(true);
 
       stopCamera(); 
       triggerAlert("ปิดระบบเสร็จสิ้น", "🔒 ล็อกเครื่องกลางและปิดกล้องสแกนเรียบร้อยแล้วครับ", "🔒");
     }
 
-    function submitRecord(event) {
+    function submitRecord() {
       const desc = document.getElementById('rec-desc').value;
       const type = document.getElementById('rec-type').value;
       const amount = parseFloat(document.getElementById('rec-amount').value);
       const fileInput = document.getElementById('rec-file');
       if(!desc || isNaN(amount)) return;
-      const btn = event.currentTarget;
       const file = fileInput.files[0];
       if (file) {
         const reader = new FileReader();
         reader.onload = function(e) { 
-          // ไฟล์แนบ (เช่น สลิป) ใช้เวลาอัปโหลดผ่าน Apps Script นานกว่าปกติ โดยเฉพาะเน็ตมือถือ จึงให้เวลารอนานขึ้น
           google.script.run.withSuccessHandler(() => { 
             toggleModal('recordModal'); 
-            loadFinance(); 
-          }).withButton(btn).withTimeout(60000).addRecordWithFile(loggedInUser, desc, type, amount, { bytes: e.target.result.split(',')[1], mimeType: file.type, name: file.name }); 
+            loadFinance(true); 
+          }).addRecordWithFile(loggedInUser, desc, type, amount, { bytes: e.target.result.split(',')[1], mimeType: file.type, name: file.name }); 
         };
         reader.readAsDataURL(file);
       } else {
         google.script.run.withSuccessHandler(() => { 
           toggleModal('recordModal'); 
-          loadFinance(); 
-        }).withButton(btn).addRecordWithFile(loggedInUser, desc, type, amount, null);
+          loadFinance(true); 
+        }).addRecordWithFile(loggedInUser, desc, type, amount, null);
       }
     }
   </script>
