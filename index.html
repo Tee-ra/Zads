@@ -2,17 +2,11 @@
 <html>
 <head>
   <script>
-    // ใส่คลาส dark ให้เร็วที่สุดก่อนหน้าเว็บ render เพื่อไม่ให้เห็นจอสว่างวาบก่อนสลับเป็นมืด
     if (localStorage.getItem('colorTheme') === 'dark') document.documentElement.classList.add('dark');
   </script>
-  
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
-  
-  <script src="https://cdn.tailwindcss.com" defer></script>
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
-  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
     body { font-family: 'Prompt', sans-serif; background-color: #F5F5F7; color: #1D1D1F; }
     .apple-nav { backdrop-filter: blur(20px); background: rgba(255, 255, 255, 0.8); border-bottom: 1px solid rgba(0,0,0,0.05); }
@@ -55,7 +49,6 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Dark Mode */
     html.dark body { background-color: #0d0d0f; color: #e5e5e7; }
     html.dark .apple-nav { background: rgba(20,20,22,0.85) !important; border-bottom-color: rgba(255,255,255,0.06) !important; }
     html.dark .apple-card,
@@ -133,7 +126,7 @@
       <button id="tabDashboardBtn" onclick="switchTab('dashboard')" class="tab-btn py-2 transition">📊 สถิติทีม & ค้นหารายชื่อ</button>
     </div>
 
-    <!-- Section: รายรับรายจ่าย -->
+    <!-- 1. BAZAAR FINANCE SECTION -->
     <div id="sectionFinance" class="space-y-6">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="apple-card p-6"><div class="text-xs font-semibold text-gray-400 mb-1">เงินคงเหลือสีแสด</div><div class="text-2xl font-bold orange-accent" id="val-balance">฿0.00</div></div>
@@ -159,7 +152,7 @@
       </div>
     </div>
 
-    <!-- Section: กล้องสแกน -->
+    <!-- 2. SCANNER SECTION -->
     <div id="sectionScanner" class="space-y-6 hidden">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div id="scannerCard" class="apple-card p-6 md:col-span-1 space-y-4">
@@ -210,19 +203,29 @@
       </div>
     </div>
 
-    <!-- Section: แจ้งลาและปฏิทิน -->
+    <!-- 3. LEAVE & CALENDAR SECTION -->
     <div id="sectionLeave" class="space-y-6 hidden">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Form ลาออนไลน์ (ปรับปรุง: รองรับการเลือกหลายวัน) -->
         <div class="apple-card p-6 md:col-span-1 space-y-4">
           <h3 class="text-base font-bold text-gray-800">📝 ฟอร์มแจ้งลาเข้าบ้านสีแสด</h3>
           <p class="text-[11px] text-gray-400">สมาชิก ม.4 และสตาฟ สามารถยื่นใบลาล่วงหน้าออนไลน์ตรงนี้ได้เลยโดยไม่ต้องล็อกอิน</p>
           <div>
+            <label class="block text-[10px] font-medium text-gray-400 mb-1">รหัสนักเรียน:</label>
             <input type="text" id="leave-id" placeholder="รหัสนักเรียน 5 หลัก" class="w-full p-3 bg-gray-50 rounded-xl text-xs border-none focus:outline-none focus:ring-1 focus:ring-orange-500">
           </div>
-          <div>
-            <input type="date" id="leave-date" class="w-full p-3 bg-gray-50 rounded-xl text-xs border-none focus:outline-none">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[10px] font-medium text-gray-400 mb-1">ตั้งแต่วันที่:</label>
+              <input type="date" id="leave-start-date" class="w-full p-2.5 bg-gray-50 rounded-xl text-xs border-none focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-[10px] font-medium text-gray-400 mb-1">ถึงวันที่ (ถ้าลาวันเดียวไม่ต้องใส่):</label>
+              <input type="date" id="leave-end-date" class="w-full p-2.5 bg-gray-50 rounded-xl text-xs border-none focus:outline-none">
+            </div>
           </div>
           <div>
+            <label class="block text-[10px] font-medium text-gray-400 mb-1">เหตุผลการลา:</label>
             <textarea id="leave-reason" placeholder="ระบุเหตุผลการลา (เช่น ติดธุระครอบครัว, ป่วยมีไข้)" rows="3" class="w-full p-3 bg-gray-50 rounded-xl text-xs border-none focus:outline-none"></textarea>
           </div>
           <button onclick="sendLeaveForm()" class="w-full btn-apple-orange py-2.5 rounded-xl text-xs font-medium">ส่งใบลาออนไลน์</button>
@@ -275,7 +278,7 @@
       </div>
     </div>
 
-    <!-- Modals ต่างๆ -->
+    <!-- MODAL: รายละเอียดวันปฏิทิน -->
     <div id="calDayDetailModal" class="fixed inset-0 bg-black/10 backdrop-blur-sm hidden flex items-center justify-center z-50">
       <div class="bg-white/95 backdrop-blur-md rounded-[24px] p-6 w-full max-w-sm border border-white/20 shadow-xl">
         <h3 id="calDayDetailTitle" class="text-base font-bold text-gray-900 mb-3"></h3>
@@ -284,6 +287,7 @@
       </div>
     </div>
 
+    <!-- MODAL: ประวัติการเช็กชื่อ -->
     <div id="historyModal" class="fixed inset-0 bg-black/10 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
       <div class="bg-white/95 backdrop-blur-md rounded-[24px] p-6 w-full max-w-md border border-white/20 shadow-xl">
         <h3 id="historyModalTitle" class="text-base font-bold text-gray-900 mb-1"></h3>
@@ -293,7 +297,7 @@
       </div>
     </div>
 
-    <!-- Section: แดชบอร์ด -->
+    <!-- 4. DASHBOARD SECTION -->
     <div id="sectionDashboard" class="space-y-6 hidden">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="team-stats-row">
         <div class="apple-card p-4 text-center"><div class="text-[10px] text-gray-400 font-medium">สมาชิกรวมในบ้านสี</div><div class="text-xl font-bold text-gray-800" id="stat-total-students">0 คน</div></div>
@@ -335,6 +339,7 @@
 
   </main>
 
+  <!-- MODAL: LOGIN -->
   <div id="loginModal" class="fixed inset-0 bg-black/10 backdrop-blur-sm hidden flex items-center justify-center z-50">
     <div class="bg-white/90 backdrop-blur-md rounded-[24px] p-6 w-full max-w-xs border border-white/20 shadow-xl">
       <h3 class="text-base font-bold text-gray-900 mb-4">เปิดเครื่องกลางสแกนชื่อ</h3>
@@ -347,6 +352,7 @@
     </div>
   </div>
 
+  <!-- MODAL: RECORD FINANCE -->
   <div id="recordModal" class="fixed inset-0 bg-black/10 backdrop-blur-sm hidden flex items-center justify-center z-50">
     <div class="bg-white/90 backdrop-blur-md rounded-[24px] p-6 w-full max-w-sm border border-white/20 shadow-xl">
       <h3 class="text-base font-bold text-gray-900 mb-4">เพิ่มรายการบัญชีสีแสด</h3>
@@ -361,6 +367,7 @@
     </div>
   </div>
 
+  <!-- MODAL: ADD CALENDAR (ปรับปรุง: เพิ่มระบบค้นหาชื่อนักเรียน) -->
   <div id="calendarModal" class="fixed inset-0 bg-black/10 backdrop-blur-sm hidden flex items-center justify-center z-50">
     <div class="bg-white/90 backdrop-blur-md rounded-[24px] p-6 w-full max-w-sm border border-white/20 shadow-xl">
       <h3 class="text-base font-bold text-gray-900 mb-4">เพิ่มกิจกรรมในปฏิทิน</h3>
@@ -373,7 +380,16 @@
       </label>
 
       <div id="cal-roster-picker" class="hidden mb-3">
-        <p class="text-[10px] text-gray-400 mb-1">เลือกเฉพาะคนที่ต้องเข้าวันนี้:</p>
+        <div class="flex items-center justify-between gap-2 mb-1.5">
+          <span class="text-[10px] text-gray-400">เลือกคนต้องเข้า:</span>
+          <div class="space-x-2 text-[10px]">
+            <button type="button" onclick="selectAllRoster(true)" class="text-orange-600 hover:underline">เลือกทั้งหมด</button>
+            <button type="button" onclick="selectAllRoster(false)" class="text-gray-400 hover:underline">ล้าง</button>
+          </div>
+        </div>
+        <!-- 💡 ปรับปรุง: เพิ่มช่องค้นหารายชื่อใน Pop-up -->
+        <input type="text" id="rosterSearchInput" onkeyup="filterRosterList()" placeholder="🔍 ค้นชื่อ / ชื่อเล่น / รหัส..." class="w-full p-2 mb-2 bg-gray-100 rounded-lg text-xs border-none focus:outline-none">
+        
         <div id="cal-roster-list" class="max-h-[160px] overflow-y-auto bg-gray-50 rounded-xl p-2 space-y-1 text-xs">
           <p class="text-gray-400 text-center py-2">กำลังโหลดรายชื่อนักเรียน...</p>
         </div>
@@ -386,6 +402,7 @@
     </div>
   </div>
 
+  <!-- MODAL: KIOSK EXIT -->
   <div id="kioskExitModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[10000] p-4">
     <div class="bg-white rounded-[24px] p-6 w-full max-w-xs">
       <h3 class="text-base font-bold text-gray-900 mb-1">ยืนยันตัวตนก่อนออก</h3>
@@ -400,7 +417,6 @@
   </div>
 
   <script>
-    // ⚠️ แก้ตรงนี้เป็นลิงก์ Web App /exec ของคุณเอง
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbypN_IW41VQNCz_1dChWFaFjBbguiRDrTOZFgvuw582jXBOG0LDywFjTEK3a7-OBCWC/exec";
 
     let pendingRequestCount = 0;
@@ -462,7 +478,7 @@
       localStorage.setItem('colorTheme', isDark ? 'dark' : 'light');
       document.getElementById('darkModeBtn').innerText = isDark ? '☀️' : '🌙';
     }
-
+    
     document.addEventListener('DOMContentLoaded', () => {
       if (document.documentElement.classList.contains('dark')) {
         document.getElementById('darkModeBtn').innerText = '☀️';
@@ -476,18 +492,15 @@
     let cachedStudentsData = [];
     let currentCameraId = null;
     let availableCameras = [];
+    
+    // 💡 ระบบป้องกันการสแกนซ้ำ & ระบบเสียงอ่านชื่อ
+    let recentScans = {}; // { studentId: timestamp }
 
     window.onload = () => {
       loadFinance();
-      
-      setTimeout(() => {
-        loadCalendar();
-        loadLeaveList();
-      }, 1000);
-
-      setTimeout(() => {
-        refreshDashboard();
-      }, 2000);
+      loadCalendar();
+      refreshDashboard();
+      loadLeaveList();
     };
 
     function switchTab(tab) {
@@ -534,6 +547,7 @@
     function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
     function formatMoney(num) { return '฿' + num.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,'); }
 
+    // --- 1. โหลดข้อมูลบัญชี ---
     function loadFinance() {
       google.script.run.withSuccessHandler(data => {
         if(data.error) return;
@@ -546,12 +560,9 @@
           let inc = item.income > 0 ? `<span class="text-green-500 font-semibold">+${formatMoney(item.income)}</span>` : "-";
           let exp = item.expense > 0 ? `<span class="text-red-400">-${formatMoney(item.expense)}</span>` : "-";
           
-          let receiptBtn = "-";
-          if (item.receiptUrl) {
-            receiptBtn = `<a href="${item.receiptUrl}" target="_blank" class="bg-orange-50 text-orange-600 border border-orange-200 px-2.5 py-1 rounded-full hover:bg-orange-100 transition inline-block">📄 เปิดดูรูป</a>`;
-          } else {
-            receiptBtn = `<span class="text-gray-300 italic">ไม่มีหลักฐาน</span>`;
-          }
+          let receiptBtn = item.receiptUrl 
+            ? `<a href="${item.receiptUrl}" target="_blank" class="bg-orange-50 text-orange-600 border border-orange-200 px-2.5 py-1 rounded-full hover:bg-orange-100 transition inline-block">📄 เปิดดูรูป</a>`
+            : `<span class="text-gray-300 italic">ไม่มีหลักฐาน</span>`;
 
           let manageBtn = loggedInRole === 'admin'
             ? `<button onclick="deleteFinanceRecord(${item.rowId})" class="text-red-400 hover:text-red-500 text-[11px] font-medium">🗑 ลบ</button>`
@@ -583,6 +594,7 @@
       }).deleteRecord(rowId);
     }
 
+    // --- 2. ปฏิทินกิจกรรม ---
     let calendarEventsCache = [];
     let allStudentsCache = [];
     let calGridDate = new Date();
@@ -640,7 +652,7 @@
     function parseThaiDateKey(dateStr) {
       const parts = dateStr.split('/');
       if (parts.length !== 3) return null;
-      return `${parts[2]}-${parts[1]}-${parts[0]}`; 
+      return `${parts[2]}-${parts[1]}-${parts[0]}`;
     }
 
     function renderCalendarGrid() {
@@ -657,7 +669,7 @@
       });
 
       const firstDay = new Date(year, month, 1);
-      const startWeekday = firstDay.getDay(); 
+      const startWeekday = firstDay.getDay();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const todayKey = (() => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; })();
 
@@ -695,30 +707,46 @@
       toggleModal('calDayDetailModal');
     }
 
+    // 💡 ปรับปรุง: ระบบการเลือกรายชื่อนักเรียน + ค้นหารายชื่อ
     function openCalendarModal() {
       document.getElementById('cal-require-all').checked = true;
       document.getElementById('cal-roster-picker').classList.add('hidden');
+      document.getElementById('rosterSearchInput').value = "";
       toggleModal('calendarModal');
 
       if (allStudentsCache.length === 0) {
         google.script.run.withSuccessHandler(list => {
           allStudentsCache = list;
-          renderRosterPicker();
+          renderRosterPicker(allStudentsCache);
         }).getAllStudents();
       } else {
-        renderRosterPicker();
+        renderRosterPicker(allStudentsCache);
       }
     }
 
-    function renderRosterPicker() {
+    function renderRosterPicker(list) {
       let h = "";
-      allStudentsCache.forEach(s => {
-        h += `<label class="flex items-center gap-2 py-1 hover:bg-gray-100 rounded px-1 cursor-pointer">
+      list.forEach(s => {
+        h += `<label class="roster-item flex items-center gap-2 py-1 hover:bg-gray-100 rounded px-1 cursor-pointer">
                 <input type="checkbox" class="cal-roster-checkbox rounded" value="${s.id}">
-                <span>${s.nickname || s.name} <span class="text-gray-400">(${s.id})</span></span>
+                <span>${s.name} <span class="orange-accent">(${s.nickname || '-'})</span> <span class="text-gray-400 text-[10px]">#${s.id}</span></span>
               </label>`;
       });
-      document.getElementById('cal-roster-list').innerHTML = h || "<p class='text-gray-400 text-center py-2'>ไม่พบรายชื่อนักเรียน</p>";
+      document.getElementById('cal-roster-list').innerHTML = h || "<p class='text-gray-400 text-center py-2'>ไม่พบรายชื่อ</p>";
+    }
+
+    function filterRosterList() {
+      let q = document.getElementById('rosterSearchInput').value.toLowerCase().trim();
+      let filtered = allStudentsCache.filter(s => {
+        return s.name.toLowerCase().includes(q) ||
+               (s.nickname && s.nickname.toLowerCase().includes(q)) ||
+               s.id.toString().includes(q);
+      });
+      renderRosterPicker(filtered);
+    }
+
+    function selectAllRoster(checked) {
+      document.querySelectorAll('.cal-roster-checkbox').forEach(cb => cb.checked = checked);
     }
 
     function toggleRosterPicker() {
@@ -777,16 +805,13 @@
       }).syncCalendarFromGoogle();
     }
 
+    // --- 3. กล้องสแกน & ระบบสแกน ---
     function startCamera() {
       document.getElementById('lockNotice').classList.add('hidden');
       document.getElementById('scannerContainer').classList.remove('hidden');
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        triggerAlert(
-          "อุปกรณ์นี้ไม่รองรับกล้อง 🔒",
-          "เบราว์เซอร์หรือแอปที่เปิดอยู่ไม่รองรับการเข้าถึงกล้อง\n\n💡 กรุณากดจุดสามจุด/เมนู แล้วเลือก 'เปิดด้วยเบราว์เซอร์' (Chrome/Safari) แทนครับ",
-          "❌"
-        );
+        triggerAlert("อุปกรณ์นี้ไม่รองรับกล้อง 🔒", "เบราว์เซอร์ไม่รองรับการเข้าถึงกล้อง แนะนำให้เปิดผ่าน Chrome/Safari", "❌");
         return;
       }
 
@@ -836,7 +861,6 @@
           executeScannerStream({ facingMode: "environment" });
         }
       }).catch(err => {
-        console.warn("Camera fallback applied:", err);
         executeScannerStream({ facingMode: "environment" });
       });
     }
@@ -934,19 +958,73 @@
       executeScannerStream(nextCamera.id);
     }
 
+    // 🔊 ระบบสร้างเสียงอ่านชื่อ & เสียงสังเคราะห์ผ่าน Web Audio API
+    function playBeepSound(type = 'success') {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'success') {
+          osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+          gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.15);
+        } else {
+          osc.frequency.setValueAtTime(220, audioCtx.currentTime); // A3 Low Tone
+          gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.3);
+        }
+      } catch (e) {}
+    }
+
+    function speakText(text) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel(); // ล้างคิวเสียงเก่า
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'th-TH';
+        utterance.rate = 1.0;
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    // 💥 อัปเดต: ป้องกันการสแกนซ้ำ + ส่งเสียงแจ้งเตือนบอกชื่อนักเรียน
     function onScanSuccess(qrText) {
+      const trimmedId = qrText.toString().trim();
+      const now = Date.now();
+
+      // เช็กการสแกนซ้ำในระยะเวลา 10 วินาที (Cool-down)
+      if (recentScans[trimmedId] && (now - recentScans[trimmedId] < 10000)) {
+        playBeepSound('duplicate');
+        speakText("สแกนแล้วครับ");
+        triggerAlert("สแกนซ้ำ ⚠️", `รหัสนักเรียน ${trimmedId} เพิ่งทำการสแกนไปเมื่อครู่ครับ`, "⚠️");
+        return;
+      }
+
       if(!isProcessingScan) {
         isProcessingScan = true;
         let type = document.getElementById('attendance-type').value;
+
         google.script.run.withSuccessHandler(res => {
           if(res.success) {
-            triggerAlert("สแกนสำเร็จ ✅", `สตาฟ/สมาชิก: ${res.name}\nบันทึกเวลา ${type} เรียบร้อย`, "🎉");
+            recentScans[trimmedId] = Date.now(); // บันทึกเวลาสแกนสำเร็จ
+            playBeepSound('success');
+            
+            const displayName = res.nickname || res.name;
+            speakText(`${displayName} สแกนสำเร็จ`);
+
+            triggerAlert("สแกนสำเร็จ ✅", `สตาฟ/สมาชิก: ${res.name} (${res.nickname || '-'})\nบันทึกเวลา ${type} เรียบร้อย`, "🎉");
             refreshDashboard();
           } else {
+            playBeepSound('duplicate');
+            speakText("สแกนไม่สำเร็จ");
             triggerAlert("สแกนล้มเหลว ❌", res, "⚠️");
           }
-          setTimeout(() => { isProcessingScan = false; }, 3000); 
-        }).recordAttendance(qrText, type);
+          setTimeout(() => { isProcessingScan = false; }, 2500); 
+        }).recordAttendance(trimmedId, type);
       }
     }
 
@@ -966,18 +1044,8 @@
 
       if (name === "NotAllowedError" || name === "PermissionDeniedError") {
         title = "ไม่ได้รับอนุญาตให้ใช้กล้อง 🚫";
-        msg = "คุณกด 'ปฏิเสธ' สิทธิ์กล้อง หรือเบราว์เซอร์เคยบล็อกไว้\n\n💡 กรุณากดไอคอนกุญแจ/ตัวล็อกที่แถบ URL แล้วเปิดสิทธิ์กล้องใหม่ จากนั้นรีเฟรชหน้าเว็บครับ";
-      } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
-        title = "ไม่พบกล้องในอุปกรณ์นี้ 📷";
-        msg = "อุปกรณ์นี้ไม่มีกล้อง หรือกล้องถูกปิดใช้งานในระบบ\n\n💡 ลองเปิดด้วยมือถือหรือคอมพิวเตอร์ที่มีกล้องแทนครับ";
-      } else if (name === "NotReadableError" || name === "TrackStartError") {
-        title = "กล้องถูกใช้งานอยู่ ⚠️";
-        msg = "กล้องอาจถูกเปิดใช้งานโดยแอปอื่นอยู่ในขณะนี้\n\n💡 ลองปิดแอปอื่นที่อาจใช้กล้องอยู่ แล้วลองใหม่อีกครั้งครับ";
-      } else if (location.protocol !== "https:") {
-        title = "ต้องใช้ HTTPS เท่านั้น 🔒";
-        msg = "เบราว์เซอร์อนุญาตให้ใช้กล้องเฉพาะบนลิงก์ที่ปลอดภัย (https://) เท่านั้น";
+        msg = "คุณกด 'ปฏิเสธ' สิทธิ์กล้อง\n\n💡 กรุณากดไอคอนรูปแม่กุญแจตรง URL เพื่อเปิดสิทธิ์กล้องใหม่";
       }
-
       triggerAlert(title, msg, "❌");
     }
 
@@ -994,6 +1062,7 @@
       }
     }
 
+    // --- 4. บันทึกข้อมูลโดยสตาฟ ---
     function submitManualAttendance() {
       let id = document.getElementById('manual-id').value;
       let date = document.getElementById('manual-date').value;
@@ -1002,27 +1071,33 @@
       
       google.script.run.withSuccessHandler(res => {
         if(res === true) {
-          triggerAlert("บันทึกประวัติเพิ่มเติมสำเร็จ", "ข้อมูลถูกบันทึกลงฐานข้อมูลแล้ว", "✅");
+          triggerAlert("บันทึกประวัติสำเร็จ", "ข้อมูลถูกบันทึกลงฐานข้อมูลแล้ว", "✅");
           refreshDashboard();
           document.getElementById('manual-id').value = "";
         } else { triggerAlert("เกิดข้อผิดพลาด", res, "❌"); }
       }).staffAddAttendance(id, date, type);
     }
 
+    // --- 5. ส่งฟอร์มแจ้งลาออนไลน์ (อัปเดต: รองรับช่วงวัน) ---
     function sendLeaveForm() {
       let id = document.getElementById('leave-id').value;
-      let date = document.getElementById('leave-date').value;
+      let startDate = document.getElementById('leave-start-date').value;
+      let endDate = document.getElementById('leave-end-date').value || startDate;
       let reason = document.getElementById('leave-reason').value;
-      if(!id || !date || !reason) return triggerAlert("ข้อมูลไม่ครบถ้วน", "กรุณากรอกข้อมูลใบลาให้ครบทุกช่อง", "⚠️");
+      
+      if(!id || !startDate || !reason) return triggerAlert("ข้อมูลไม่ครบถ้วน", "กรุณากรอกรหัส วันที่ และเหตุผลให้ครบถ้วน", "⚠️");
       
       google.script.run.withSuccessHandler(res => {
         if(res.success) {
-          triggerAlert("ยื่นใบลาสำเร็จ ✅", `ระบบบันทึกการลาของ ${res.name} เรียบร้อยแล้ว`, "📝");
-          document.getElementById('leave-id').value = ""; document.getElementById('leave-reason').value = "";
+          triggerAlert("ยื่นใบลาสำเร็จ ✅", `บันทึกการลาของ ${res.name} รวม ${res.count} วันเรียบร้อยแล้ว`, "📝");
+          document.getElementById('leave-id').value = ""; 
+          document.getElementById('leave-start-date').value = "";
+          document.getElementById('leave-end-date').value = "";
+          document.getElementById('leave-reason').value = "";
           refreshDashboard();
           loadLeaveList();
         } else { triggerAlert("ล้มเหลว", res, "❌"); }
-      }).submitLeave(id, date, reason);
+      }).submitLeave(id, startDate, endDate, reason);
     }
 
     let leaveDataCache = [];
@@ -1075,6 +1150,7 @@
       document.getElementById('leave-list-body').innerHTML = h || "<p class='text-gray-400 text-center py-6 text-xs'>ยังไม่มีใครแจ้งลาเลยครับ</p>";
     }
 
+    // --- 6. แดชบอร์ดสถิติ ---
     function refreshDashboard() {
       google.script.run.withSuccessHandler(res => {
         if(res.error) return;
@@ -1154,78 +1230,83 @@
       toggleModal('historyModal');
     }
 
+    // --- 7. การล็อกอินสตาฟ ---
     function loginProcess() {
       let u = document.getElementById('username').value;
       let p = document.getElementById('password').value;
       google.script.run.withSuccessHandler(res => {
         if(res.success) {
-          loggedInUser = u; 
-          loggedInRole = res.role; // 👈 จุดที่แก้ไข: กำหนดค่าสิทธิ์ role ให้ตัวแปรทำงานถูกต้อง
-          toggleModal('loginModal');
+          loggedInUser = u; loggedInRole = res.role; toggleModal('loginModal');
           document.getElementById('loginBtn').classList.add('hidden');
           document.getElementById('adminPanel').classList.remove('hidden');
-          document.getElementById('adminName').innerText = "ผู้คุมซุ้ม: " + u + (loggedInRole === 'admin' ? " (ผู้ดูแล)" : "");
+          document.getElementById('adminName').innerText = "ผู้คุมซุ้ม: " + u + (loggedInRole === 'admin' ? ' (Admin)' : '');
+          
+          document.querySelectorAll('.admin-only').forEach(el => {
+            if (loggedInRole === 'admin') el.classList.remove('hidden');
+          });
 
           document.getElementById('staffManualRow').classList.remove('opacity-40', 'pointer-events-none');
           document.getElementById('staffManualNotice').classList.add('hidden');
 
-          if (loggedInRole === 'admin') {
-            document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
-          }
-          loadFinance();
-          loadCalendar();
-
           if (!document.getElementById('sectionScanner').classList.contains('hidden')) {
             startCamera();
           }
-          triggerAlert("ยินดีต้อนรับสตาฟสีแสด", "เปิดระบบสแกนเครื่องกลางและแผงควบคุมสตาฟแล้วครับ", "🍊");
-        } else { triggerAlert("ข้อผิดพลาด", res.message, "❌"); }
+          loadFinance();
+          loadCalendar();
+          triggerAlert("เข้าสู่ระบบสำเร็จ ✅", "สวัสดีสตาฟ " + u + "\nระบบปลดล็อกเครื่องสแกนแล้ว", "🔑");
+        } else { triggerAlert("เข้าสู่ระบบไม่สำเร็จ", res.message || "รหัสผ่านไม่ถูกต้อง", "❌"); }
       }).checkLogin(u, p);
     }
 
     function logoutProcess() {
-      loggedInUser = null;
-      loggedInRole = null;
+      loggedInUser = null; loggedInRole = null;
       document.getElementById('loginBtn').classList.remove('hidden');
       document.getElementById('adminPanel').classList.add('hidden');
       document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
+
       document.getElementById('staffManualRow').classList.add('opacity-40', 'pointer-events-none');
       document.getElementById('staffManualNotice').classList.remove('hidden');
 
-      document.body.classList.remove('kiosk-mode');
-      document.getElementById('scannerCard').classList.remove('kiosk-mode-card');
-      document.getElementById('enterKioskBtn').classList.remove('hidden');
-      document.getElementById('exitKioskBtn').classList.add('hidden');
-
+      stopCamera();
       loadFinance();
       loadCalendar();
-
-      stopCamera(); 
-      triggerAlert("ปิดระบบเสร็จสิ้น", "🔒 ล็อกเครื่องกลางและปิดกล้องสแกนเรียบร้อยแล้วครับ", "🔒");
+      triggerAlert("ออกจากระบบแล้ว 🔒", "ล็อกเครื่องกลางเรียบร้อย", "🔒");
     }
 
     function submitRecord() {
-      const desc = document.getElementById('rec-desc').value;
-      const type = document.getElementById('rec-type').value;
-      const amount = parseFloat(document.getElementById('rec-amount').value);
-      const fileInput = document.getElementById('rec-file');
-      if(!desc || isNaN(amount)) return;
-      const file = fileInput.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) { 
-          google.script.run.withSuccessHandler(() => { 
-            toggleModal('recordModal'); 
-            loadFinance(); 
-          }).addRecordWithFile(loggedInUser, desc, type, amount, { bytes: e.target.result.split(',')[1], mimeType: file.type, name: file.name }); 
+      let desc = document.getElementById('rec-desc').value;
+      let type = document.getElementById('rec-type').value;
+      let amount = Number(document.getElementById('rec-amount').value);
+      let fileInput = document.getElementById('rec-file');
+      
+      if(!desc || !amount) return triggerAlert("ข้อมูลไม่ครบ", "กรุณาระบุรายละเอียดและจำนวนเงิน", "⚠️");
+
+      let fileData = null;
+      if (fileInput.files.length > 0) {
+        let file = fileInput.files[0];
+        let reader = new FileReader();
+        reader.onload = function(e) {
+          let bytes = e.target.result.split(',')[1];
+          fileData = { bytes: bytes, mimeType: file.type, name: file.name };
+          sendRecordToGas(loggedInUser, desc, type, amount, fileData);
         };
         reader.readAsDataURL(file);
       } else {
-        google.script.run.withSuccessHandler(() => { 
-          toggleModal('recordModal'); 
-          loadFinance(); 
-        }).addRecordWithFile(loggedInUser, desc, type, amount, null);
+        sendRecordToGas(loggedInUser, desc, type, amount, null);
       }
+    }
+
+    function sendRecordToGas(user, desc, type, amount, fileData) {
+      google.script.run.withSuccessHandler(res => {
+        if(res === true) {
+          toggleModal('recordModal');
+          document.getElementById('rec-desc').value = "";
+          document.getElementById('rec-amount').value = "";
+          document.getElementById('rec-file').value = "";
+          triggerAlert("บันทึกสำเร็จ ✅", "เพิ่มรายการบัญชีแล้ว", "💰");
+          loadFinance();
+        } else { triggerAlert("เกิดข้อผิดพลาด", res, "❌"); }
+      }).addRecordWithFile(user, desc, type, amount, fileData);
     }
   </script>
 </body>
